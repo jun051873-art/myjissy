@@ -35,34 +35,16 @@
             background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
-        /* 🚀 搜尋列樣式 */
-        .search-container {
-            margin: 20px 0;
-            position: sticky;
-            top: 20px;
-            z-index: 100;
-        }
+        /* 搜尋列 */
+        .search-container { margin: 20px 0; position: sticky; top: 20px; z-index: 100; }
         .search-input {
-            width: 100%;
-            padding: 15px 25px;
-            border-radius: 50px;
-            border: 1px solid var(--card-border);
-            background: rgba(255, 255, 255, 0.08);
-            color: white;
-            font-size: 1rem;
-            backdrop-filter: blur(20px);
-            outline: none;
-            box-sizing: border-box;
-            transition: 0.3s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            width: 100%; padding: 15px 25px; border-radius: 50px; border: 1px solid var(--card-border);
+            background: rgba(255, 255, 255, 0.08); color: white; font-size: 1rem; backdrop-filter: blur(20px);
+            outline: none; box-sizing: border-box; transition: 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
-        .search-input:focus {
-            border-color: #BF953F;
-            background: rgba(255, 255, 255, 0.12);
-            box-shadow: 0 0 20px rgba(191, 149, 63, 0.3);
-        }
+        .search-input:focus { border-color: #BF953F; background: rgba(255, 255, 255, 0.12); }
 
-        /* 統計與卡片樣式維持原樣 */
+        /* 統計與卡片 */
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 25px 0 40px; }
         .stat-card { background: var(--glass); border: 1px solid var(--card-border); border-radius: 20px; padding: 20px; text-align: center; backdrop-filter: blur(20px); }
         .stat-value { font-size: 1.8rem; font-weight: 900; }
@@ -73,7 +55,7 @@
             padding: 25px; margin-bottom: 20px; display: flex; justify-content: space-between;
             align-items: center; backdrop-filter: blur(30px); transition: 0.3s;
         }
-        .key-card.hidden { display: none; } /* 用於搜尋過濾 */
+        .key-card.hidden { display: none; }
 
         .owner-name { font-size: 1.3rem; font-weight: 800; margin-bottom: 5px; cursor: pointer; color: #fff; }
         .key-id-badge { font-family: 'Montserrat'; font-size: 0.65rem; color: var(--text-dim); background: rgba(255,255,255,0.08); padding: 3px 10px; border-radius: 5px; }
@@ -84,10 +66,16 @@
         .status-box { text-align: right; min-width: 180px; }
         .time-badge { font-size: 0.9rem; font-weight: 800; padding: 8px 15px; border-radius: 12px; margin-bottom: 15px; display: inline-block; background: rgba(212,175,55,0.12); color: #FCF6BA; }
         
+        .btn-group { display: flex; gap: 10px; justify-content: flex-end; }
         .btn-renew-luxe {
             background: var(--gold-gradient); color: #000 !important; border: none; border-radius: 12px;
             padding: 8px 15px; font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 5px;
         }
+        .btn-trash {
+            background: rgba(255, 59, 48, 0.1); color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.2);
+            border-radius: 12px; padding: 8px 12px; cursor: pointer; transition: 0.3s;
+        }
+        .btn-trash:hover { background: #ff3b30; color: #fff; }
     </style>
 </head>
 <body>
@@ -111,7 +99,6 @@
 </div>
 
 <script>
-    // Firebase Config (請保持原樣)
     const firebaseConfig = {
         apiKey: "AIzaSyCMgz-UEFux6v1kcZhuvHaeSxhqxx-9zT4",
         authDomain: "salonsystem-71566.firebaseapp.com",
@@ -146,7 +133,6 @@
 
                 const card = document.createElement('div');
                 card.className = 'key-card';
-                // 🚀 關鍵：在 dataset 存入搜尋用的關鍵字
                 card.dataset.search = `${data.ownerName || ''} ${data.salonId || ''}`.toLowerCase();
                 
                 card.innerHTML = `
@@ -166,6 +152,9 @@
                             <button class="btn-renew-luxe" onclick="modifyTime('${keyId}')">
                                 <i class="fas fa-calendar-plus"></i> 續約
                             </button>
+                            <button class="btn-trash" onclick="deleteKey('${keyId}')" title="註銷金鑰">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
                         </div>
                     </div>
                 `;
@@ -177,22 +166,15 @@
         } catch (e) { listArea.innerHTML = "數據讀取失敗"; }
     }
 
-    // 🚀 搜尋過濾功能
     function filterKeys() {
         const keyword = document.getElementById('search-bar').value.toLowerCase();
         const cards = document.querySelectorAll('.key-card');
-        
         cards.forEach(card => {
             const searchText = card.dataset.search;
-            if (searchText.includes(keyword)) {
-                card.classList.remove('hidden');
-            } else {
-                card.classList.add('hidden');
-            }
+            card.classList.toggle('hidden', !searchText.includes(keyword));
         });
     }
 
-    // 續約與編輯功能保持原樣 (同上一版本)
     async function modifyTime(keyId) {
         const { value: mode } = await Swal.fire({
             title: '授權管理', background: '#1a1a1a', color: '#fff',
@@ -205,13 +187,12 @@
         const currentExpire = doc.data().expire;
         const now = new Date().getTime();
         let baseTime = (currentExpire && currentExpire > now) ? currentExpire : now;
-        let newExpire = null;
+        let newExpire = (mode === 'to_forever') ? null : baseTime;
 
-        if (mode === 'to_forever') newExpire = null;
-        else {
+        if (mode !== 'to_forever') {
             let addDays = (mode === 'add_30') ? 30 : 0;
             if (mode === 'custom') {
-                const { value: cDays } = await Swal.fire({ title: '增加幾天？', input: 'number', background: '#1a1a1a', color: '#fff' });
+                const { value: cDays } = await Swal.fire({ title: '增加天數', input: 'number', background: '#1a1a1a', color: '#fff' });
                 addDays = parseInt(cDays);
             }
             if (addDays > 0) newExpire = baseTime + (addDays * 24 * 60 * 60 * 1000);
@@ -219,6 +200,23 @@
         }
         await db.collection("LicenseKeys_Booking").doc(keyId).update({ expire: newExpire });
         fetchKeys();
+    }
+
+    // 🚀 執行刪除，並同步雲端
+    async function deleteKey(keyId) {
+        const res = await Swal.fire({
+            title: '確定要註銷嗎？',
+            text: "這將永久刪除雲端授權，對方的預約系統會立即失效！",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ff3b30',
+            background: '#1a1a1a', color: '#fff'
+        });
+        if (res.isConfirmed) {
+            await db.collection("LicenseKeys_Booking").doc(keyId).delete();
+            Swal.fire({ title: '已同步刪除', icon: 'success', background: '#1a1a1a', color: '#fff', timer: 1000, showConfirmButton: false });
+            fetchKeys();
+        }
     }
 
     async function editOwner(keyId, currentName) {
