@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aether Master | 旗艦授權管理中樞</title>
+    <title>Aether Master | 旗艦中樞</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&family=Montserrat:wght@200;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,130 +12,151 @@
 
     <style>
         :root {
-            --bg-deep: #050505;
-            --gold-gradient: linear-gradient(135deg, #d4af37 0%, #fcf6ba 45%, #b38728 70%, #aa771c 100%);
-            --glass: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --text-main: #FFFFFF;
-            --text-dim: rgba(255, 255, 255, 0.4);
-            --accent-green: #32D74B;
-            --accent-orange: #FF9F0A;
-            --accent-red: #FF453A;
+            --eth-blue: #0a1128;
+            --eth-gold: #BF953F;
+            --eth-glow: rgba(191, 149, 63, 0.4);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.5);
+            --gold-gradient: linear-gradient(135deg, #BF953F 0%, #FCF6BA 45%, #B38728 70%, #FBF5B7 100%);
         }
 
-        /* 🌌 以太背景流動動畫 */
-        @keyframes ether-flow {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
+        /* 🌌 以太流呼吸背景 */
         body {
-            background: var(--bg-deep);
-            background-image: 
-                radial-gradient(circle at 80% 20%, rgba(191, 149, 63, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.02) 0%, transparent 40%);
-            font-family: 'Montserrat', 'Noto Sans TC', sans-serif;
-            color: var(--text-main);
+            background: #000;
             margin: 0; padding: 40px 20px;
+            font-family: 'Montserrat', 'Noto Sans TC', sans-serif;
+            color: var(--text-primary);
+            overflow-x: hidden;
             min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
         }
 
-        .container { max-width: 850px; margin: 0 auto; }
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                radial-gradient(circle at 10% 10%, rgba(191, 149, 63, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(0, 80, 255, 0.08) 0%, transparent 40%);
+            animation: pulse-bg 10s infinite alternate;
+            z-index: -1;
+        }
 
-        /* 🍎 賈伯斯標題：極簡、大器 */
-        .title-brand { 
-            font-size: 3.2rem; font-weight: 800; letter-spacing: -3px;
+        @keyframes pulse-bg {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .container { max-width: 900px; margin: 0 auto; }
+
+        /* 🍎 標題呼吸燈效果 */
+        .title-brand {
+            font-size: 3.5rem; font-weight: 900; text-align: center; letter-spacing: -3px;
             background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            margin-bottom: 40px; text-align: center; filter: drop-shadow(0 0 20px rgba(191, 149, 63, 0.2));
+            margin-bottom: 50px;
+            filter: drop-shadow(0 0 15px rgba(191,149,63,0.3));
+            animation: breathe 3s infinite ease-in-out;
         }
 
-        /* 🧊 以太數據卡片 */
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 50px; }
-        .stat-card { 
-            background: var(--glass); border: 1px solid var(--glass-border); border-radius: 24px; 
-            padding: 25px; text-align: center; backdrop-filter: blur(40px);
-            transition: 0.4s cubic-bezier(0.2, 1, 0.3, 1);
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.02); filter: brightness(1.2) drop-shadow(0 0 25px rgba(191,149,63,0.5)); }
         }
-        .stat-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); }
-        .stat-value { font-size: 2.2rem; font-weight: 800; margin-bottom: 5px; font-family: 'Montserrat'; }
-        .stat-label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 3px; font-weight: 600; }
 
-        /* 🔍 智慧搜尋框 */
-        .search-container { margin-bottom: 40px; }
+        /* 🧊 全維度統計卡片 */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
+        .stat-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 24px;
+            padding: 25px; text-align: center; backdrop-filter: blur(20px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stat-card:hover { transform: translateY(-10px); border-color: var(--eth-gold); box-shadow: 0 15px 40px var(--eth-glow); }
+        .stat-value { font-size: 2rem; font-weight: 800; font-family: 'Montserrat'; margin-bottom: 5px; }
+        .stat-label { font-size: 0.7rem; color: var(--text-secondary); letter-spacing: 2px; text-transform: uppercase; }
+
+        /* 🔍 智慧搜尋 */
         .search-input {
-            width: 100%; padding: 20px 30px; border-radius: 20px; 
-            border: 1px solid var(--glass-border); background: rgba(255,255,255,0.03);
-            color: #fff; font-size: 1.1rem; backdrop-filter: blur(50px); outline: none; box-sizing: border-box;
-            transition: all 0.5s ease;
+            width: 100%; padding: 22px 35px; border-radius: 50px; border: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.03); color: #fff; font-size: 1.1rem;
+            backdrop-filter: blur(30px); outline: none; margin-bottom: 40px; box-sizing: border-box;
+            transition: 0.4s; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
         }
-        .search-input:focus { background: rgba(255,255,255,0.06); border-color: #BF953F; box-shadow: 0 0 40px rgba(191, 149, 63, 0.1); }
+        .search-input:focus { border-color: var(--eth-gold); background: rgba(255,255,255,0.07); box-shadow: 0 0 30px var(--eth-glow); }
 
         /* 💳 以太清單卡片 */
         .key-card {
-            background: var(--glass); border: 1px solid var(--glass-border); border-radius: 30px;
-            padding: 30px; margin-bottom: 20px; display: flex; justify-content: space-between;
-            align-items: center; backdrop-filter: blur(30px); transition: 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 32px;
+            padding: 30px; margin-bottom: 25px; display: flex; justify-content: space-between;
+            align-items: center; backdrop-filter: blur(40px); transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative; overflow: hidden;
         }
-        .key-card:hover { transform: scale(1.02); background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); }
+        .key-card::after {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .key-card:hover { transform: scale(1.02); border-color: rgba(255,255,255,0.3); }
         .key-card.hidden { display: none; }
 
-        .owner-name { font-size: 1.5rem; font-weight: 700; color: #fff; margin-bottom: 10px; letter-spacing: -0.5px; }
-        .key-id-badge { 
-            font-size: 0.75rem; color: #BF953F; background: rgba(191,149,63,0.1); 
-            padding: 6px 14px; border-radius: 12px; font-family: 'Montserrat';
-            cursor: pointer; border: 1px solid rgba(191,149,63,0.1); transition: 0.3s;
+        .owner-info h2 { margin: 0 0 10px 0; font-size: 1.6rem; font-weight: 800; }
+        .key-badge {
+            display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px;
+            background: rgba(191, 149, 63, 0.1); color: var(--eth-gold);
+            border-radius: 12px; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+            border: 1px solid rgba(191,149,63,0.2); transition: 0.3s;
         }
-        .key-id-badge:hover { background: rgba(191,149,63,0.2); border-color: rgba(191,149,63,0.3); }
+        .key-badge:hover { background: var(--eth-gold); color: #000; }
 
-        .progress-track { width: 100%; height: 5px; background: rgba(255,255,255,0.05); border-radius: 10px; margin: 20px 0; overflow: hidden; }
-        .progress-fill { height: 100%; border-radius: 10px; transition: width 1s ease; }
-
-        /* 側邊抽屜 - 毛玻璃巔峰 */
+        /* 🚀 側邊流動面板 (超感毛玻璃) */
         .detail-drawer {
-            position: fixed; top: 0; right: -100%; width: 100%; max-width: 500px; height: 100vh;
-            background: rgba(5, 5, 5, 0.85); backdrop-filter: blur(60px); -webkit-backdrop-filter: blur(60px);
-            z-index: 2000; transition: 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-            border-left: 1px solid var(--glass-border); padding: 70px 40px; box-sizing: border-box;
+            position: fixed; top: 0; right: -100%; width: 100%; max-width: 550px; height: 100vh;
+            background: rgba(10, 15, 30, 0.7); backdrop-filter: blur(80px); -webkit-backdrop-filter: blur(80px);
+            z-index: 2000; transition: 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            border-left: 1px solid var(--glass-border); box-sizing: border-box;
+            display: flex; flex-direction: column;
         }
-        .detail-drawer.active { right: 0; }
-        .drawer-close { position: absolute; top: 40px; right: 40px; color: var(--text-dim); font-size: 1.8rem; cursor: pointer; transition: 0.3s; }
-        .drawer-close:hover { color: #fff; transform: scale(1.1); }
+        .detail-drawer.active { right: 0; box-shadow: -30px 0 100px rgba(0,0,0,0.8); }
 
-        /* 🍎 分頁標籤樣式 */
-        .drawer-tabs { display: flex; gap: 8px; margin-bottom: 40px; background: rgba(255,255,255,0.03); padding: 5px; border-radius: 18px; }
+        .drawer-header { padding: 40px; padding-bottom: 20px; }
+        .drawer-body { 
+            flex: 1; overflow-y: auto; padding: 0 40px 40px 40px; 
+            scrollbar-width: thin; scrollbar-color: var(--eth-gold) transparent;
+        }
+        .drawer-body::-webkit-scrollbar { width: 4px; }
+        .drawer-body::-webkit-scrollbar-thumb { background: var(--eth-gold); border-radius: 10px; }
+
+        /* 🍎 分類標籤 (Tabs) */
+        .drawer-tabs { display: flex; gap: 10px; margin-bottom: 30px; background: rgba(0,0,0,0.2); padding: 6px; border-radius: 20px; }
         .tab-btn {
-            flex: 1; padding: 12px; border: none; background: none; color: var(--text-dim);
-            font-size: 0.85rem; font-weight: 700; cursor: pointer; border-radius: 14px; transition: 0.4s;
+            flex: 1; padding: 14px; border: none; background: none; color: var(--text-secondary);
+            font-size: 0.9rem; font-weight: 700; cursor: pointer; border-radius: 16px; transition: 0.4s;
         }
-        .tab-btn.active { background: rgba(255,255,255,0.1); color: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+        .tab-btn.active { background: var(--gold-gradient); color: #000; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
 
-        /* 📊 數據統計裝飾 */
-        .hero-stats {
-            background: linear-gradient(135deg, rgba(191,149,63,0.1) 0%, transparent 100%);
-            border-radius: 28px; padding: 30px; text-align: center; border: 1px solid var(--glass-border); margin-bottom: 30px;
+        /* 📊 數據組件 */
+        .data-hero {
+            background: linear-gradient(135deg, rgba(191,149,63,0.15) 0%, transparent 100%);
+            border-radius: 30px; padding: 35px; border: 1px solid var(--glass-border);
+            text-align: center; margin-bottom: 30px;
         }
-        .hero-value { font-size: 3rem; font-weight: 800; color: #fff; margin: 10px 0; font-family: 'Montserrat'; letter-spacing: -2px; }
+        .revenue-val { font-size: 3.5rem; font-weight: 900; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-        .booking-item {
-            background: rgba(255, 255, 255, 0.02); border-radius: 20px; padding: 20px; margin-bottom: 15px;
-            border: 1px solid var(--glass-border); transition: 0.3s;
+        .booking-row {
+            background: rgba(255,255,255,0.03); border-radius: 20px; padding: 20px;
+            margin-bottom: 15px; border: 1px solid var(--glass-border); transition: 0.3s;
         }
-        .booking-item:hover { background: rgba(255, 255, 255, 0.04); border-color: rgba(191, 149, 63, 0.3); }
+        .booking-row:hover { background: rgba(255,255,255,0.06); border-color: var(--eth-gold); }
 
-        /* 物理效果按鈕 */
-        .btn-renew-luxe {
-            background: var(--gold-gradient); color: #000 !important; border: none; border-radius: 16px;
-            padding: 12px 24px; font-weight: 800; cursor: pointer; transition: 0.3s;
-            box-shadow: 0 10px 20px rgba(191, 149, 63, 0.2);
+        /* 按鈕系統 */
+        .btn-action {
+            background: var(--gold-gradient); color: #000; border: none; border-radius: 18px;
+            padding: 14px 28px; font-weight: 800; cursor: pointer; transition: 0.3s;
         }
-        .btn-renew-luxe:hover { transform: scale(1.05); box-shadow: 0 15px 30px rgba(191, 149, 63, 0.3); }
-        .btn-trash { 
-            background: rgba(255, 69, 58, 0.1); color: var(--accent-red); border: 1px solid rgba(255, 69, 58, 0.2);
-            border-radius: 16px; padding: 12px; cursor: pointer; transition: 0.3s; margin-left: 10px;
+        .btn-action:hover { transform: scale(1.05); filter: brightness(1.1); }
+        .btn-del {
+            background: rgba(255,0,0,0.1); color: #ff453a; border: 1px solid rgba(255,0,0,0.2);
+            padding: 14px; border-radius: 18px; cursor: pointer; margin-left: 10px;
         }
-        .btn-trash:hover { background: rgba(255, 69, 58, 0.2); transform: scale(1.1); }
     </style>
 </head>
 <body>
@@ -149,33 +170,41 @@
             <div class="stat-label">Total License</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value" id="count-active" style="color: var(--accent-green)">--</div>
+            <div class="stat-value" id="count-active" style="color:#32D74B">--</div>
             <div class="stat-label">Active Flow</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value" id="count-warning" style="color: var(--accent-orange)">--</div>
-            <div class="stat-label">Attention</div>
+            <div class="stat-value" id="count-warning" style="color:#FF9F0A">--</div>
+            <div class="stat-label">Alert Status</div>
         </div>
     </div>
 
-    <div class="search-container">
-        <input type="text" id="search-bar" class="search-input" placeholder="Search keys, salons, or status..." onkeyup="filterKeys()">
-    </div>
+    <input type="text" id="search-bar" class="search-input" placeholder="🔍 搜尋店號、金鑰、或狀態..." onkeyup="filterKeys()">
 
     <div id="key-list"></div>
 </div>
 
 <div id="detail-drawer" class="detail-drawer">
-    <div class="drawer-close" onclick="closeDrawer()"><i class="fas fa-times"></i></div>
-    <div class="drawer-title" id="drawer-owner-title">店家詳情</div>
-    <div class="drawer-subtitle">Operational Analysis</div>
-    
-    <div id="drawer-content">
+    <div class="drawer-header">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 id="drawer-title" style="margin:0; font-size:2rem; font-weight:900;">店家詳情</h2>
+            <div class="drawer-close" onclick="closeDrawer()"><i class="fas fa-times"></i></div>
         </div>
+        <p style="color:var(--text-secondary); margin-top:5px;">Real-time Synchronization Engine</p>
+    </div>
+    
+    <div class="drawer-body">
+        <div class="drawer-tabs">
+            <button class="tab-btn active" id="tab-btn-stats" onclick="switchTab('stats')">營運數據</button>
+            <button class="tab-btn" id="tab-btn-list" onclick="switchTab('list')">預約列表</button>
+            <button class="tab-btn" id="tab-btn-raw" onclick="switchTab('raw')">完整存檔</button>
+        </div>
+        <div id="drawer-main-content"></div>
+    </div>
 </div>
 
 <script>
-    // --- Firebase 配置 (維持不變) ---
+    // --- Firebase 配置 ---
     const firebaseConfig = {
         apiKey: "AIzaSyCMgz-UEFux6v1kcZhuvHaeSxhqxx-9zT4",
         authDomain: "salonsystem-71566.firebaseapp.com",
@@ -187,7 +216,8 @@
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // --- 主清單讀取 ---
+    let currentOpenKey = "";
+
     async function fetchKeys() {
         const listArea = document.getElementById('key-list');
         try {
@@ -198,34 +228,31 @@
             snap.forEach(doc => {
                 const data = doc.data(), keyId = doc.id;
                 const isPermanent = !data.expire;
-                let timeText = "👑 永久授權", color = varName('--accent-green'), progress = 100, isExpired = false;
+                let statusColor = "#32D74B", timeTxt = "👑 永久授權";
 
                 if (!isPermanent) {
                     const days = Math.ceil((data.expire - now) / 86400000);
-                    progress = Math.max(0, Math.min(100, (days / 30) * 100));
-                    if (days <= 0) { timeText = "❌ 已過期"; color = varName('--accent-red'); isExpired = true; }
+                    if (days <= 0) { statusColor = "#ff453a"; timeTxt = "❌ 已過期"; }
                     else { 
-                        timeText = `⏳ 剩餘 ${days} 天`; 
-                        active++;
-                        if (days <= 7) { color = varName('--accent-orange'); warning++; }
+                        timeTxt = `⏳ ${days} 天`; active++;
+                        if (days <= 7) { statusColor = "#FF9F0A"; warning++; }
                     }
                 } else active++;
 
                 const card = document.createElement('div');
-                card.className = `key-card ${isExpired ? 'is-expired' : ''}`;
+                card.className = 'key-card';
                 card.dataset.search = `${data.ownerName} ${data.salonId} ${keyId}`.toLowerCase();
                 card.innerHTML = `
-                    <div style="flex:1">
-                        <div class="owner-name">${data.ownerName || '未命名店家'}</div>
-                        <div class="key-id-badge" onclick="openDetail('${keyId}')"><i class="fas fa-key"></i> ${keyId}</div>
-                        <div class="progress-track"><div class="progress-fill" style="width:${progress}%; background:${color}"></div></div>
-                        <div style="font-size:0.8rem; color:var(--text-dim)">店號：${data.salonId || '---'}</div>
+                    <div class="owner-info">
+                        <h2>${data.ownerName || '未命名'}</h2>
+                        <div class="key-badge" onclick="openDetail('${keyId}')"><i class="fas fa-fingerprint"></i> ${keyId}</div>
+                        <p style="margin-top:15px; color:var(--text-secondary); font-size:0.9rem;">店號：${data.salonId || '---'}</p>
                     </div>
-                    <div style="text-align:right">
-                        <div style="color:${color}; font-weight:800; margin-bottom:15px; font-size:0.9rem;">${timeText}</div>
-                        <div style="display:flex; align-items:center">
-                            <button class="btn-renew-luxe" onclick="modifyTime('${keyId}')">管理</button>
-                            <button class="btn-trash" onclick="deleteKey('${keyId}')"><i class="fas fa-trash-alt"></i></button>
+                    <div style="text-align:right;">
+                        <div style="color:${statusColor}; font-size:1.1rem; font-weight:800; margin-bottom:20px;">${timeTxt}</div>
+                        <div style="display:flex;">
+                            <button class="btn-action" onclick="modifyTime('${keyId}')">管理授權</button>
+                            <button class="btn-del" onclick="deleteKey('${keyId}')"><i class="fas fa-trash-alt"></i></button>
                         </div>
                     </div>
                 `;
@@ -237,94 +264,83 @@
         } catch (e) { console.error(e); }
     }
 
-    // --- 詳情抽屜引擎 (數據分析 + 分類) ---
     async function openDetail(keyId) {
+        currentOpenKey = keyId;
         const doc = await db.collection("LicenseKeys_Booking").doc(keyId).get();
         if (!doc.exists) return;
         const data = doc.data();
-        document.getElementById('drawer-owner-title').innerText = data.ownerName || '店家詳算';
-        
-        const content = document.getElementById('drawer-content');
-        content.innerHTML = `
-            <div class="drawer-tabs">
-                <button class="tab-btn active" id="btn-stats" onclick="switchTab('stats', '${keyId}')">數據統計</button>
-                <button class="tab-btn" id="btn-list" onclick="switchTab('list', '${keyId}')">預約列表</button>
-            </div>
-            <div id="drawer-main-body">正在連線以太網路...</div>
-        `;
+        document.getElementById('drawer-title').innerText = data.ownerName || '店家存檔';
         document.getElementById('detail-drawer').classList.add('active');
-        switchTab('stats', keyId);
+        switchTab('stats');
     }
 
-    async function switchTab(tab, keyId) {
-        const body = document.getElementById('drawer-main-body');
-        const doc = await db.collection("LicenseKeys_Booking").doc(keyId).get();
-        const salonId = doc.data().salonId;
-
-        // 切換按鈕樣式
+    async function switchTab(tab) {
+        const body = document.getElementById('drawer-main-content');
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(`btn-${tab}`).classList.add('active');
+        document.getElementById(`tab-btn-${tab}`).classList.add('active');
+        
+        body.innerHTML = '<div style="text-align:center; padding:50px; opacity:0.5;"><i class="fas fa-circle-notch fa-spin fa-2x"></i></div>';
+
+        const doc = await db.collection("LicenseKeys_Booking").doc(currentOpenKey).get();
+        const data = doc.data();
+        const salonId = data.salonId;
 
         try {
             const sSnap = await db.collection("Salons").doc(salonId).get();
-            const apps = sSnap.exists ? (sSnap.data().appointments || []) : [];
+            const appointments = sSnap.exists ? (sSnap.data().appointments || []) : [];
 
             if (tab === 'stats') {
-                let revenue = 0;
-                let serviceMap = {};
-                apps.forEach(a => {
-                    if (a.done) revenue += parseFloat(a.price || a.amount || 0);
-                    let s = a.note || '一般項目';
-                    serviceMap[s] = (serviceMap[s] || 0) + 1;
+                let rev = 0, services = {};
+                appointments.forEach(a => {
+                    if (a.done) rev += parseFloat(a.price || a.amount || 0);
+                    let s = a.note || '其他項目';
+                    services[s] = (services[s] || 0) + 1;
                 });
 
                 body.innerHTML = `
-                    <div class="hero-stats">
-                        <div style="font-size:0.7rem; color:var(--accent-green); letter-spacing:2px; font-weight:800;">TOTAL REVENUE</div>
-                        <div class="hero-value">$${revenue.toLocaleString()}</div>
-                        <div style="font-size:0.8rem; color:var(--text-dim)">透過 Aether 完成了 ${apps.filter(a=>a.done).length} 筆訂單</div>
+                    <div class="data-hero">
+                        <p style="margin:0; font-size:0.8rem; color:var(--eth-gold); font-weight:800; letter-spacing:2px;">TOTAL REVENUE</p>
+                        <div class="revenue-val">$${rev.toLocaleString()}</div>
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:30px;">
-                        <div class="stat-card" style="padding:15px">
-                            <div style="font-size:0.6rem; color:var(--text-dim)">總客流量</div>
-                            <div style="font-size:1.4rem; font-weight:800;">${apps.length}</div>
-                        </div>
-                        <div class="stat-card" style="padding:15px">
-                            <div style="font-size:0.6rem; color:var(--text-dim)">熱門程度</div>
-                            <div style="font-size:1.4rem; font-weight:800; color:var(--accent-orange)">${Object.keys(serviceMap).length} 項</div>
-                        </div>
+                        <div class="stat-card"><div class="stat-label">客次總量</div><div class="stat-value">${appointments.length}</div></div>
+                        <div class="stat-card"><div class="stat-label">成交率</div><div class="stat-value">${Math.round((appointments.filter(a=>a.done).length/appointments.length)*100) || 0}%</div></div>
                     </div>
-                    <div style="font-size:0.8rem; color:var(--text-dim); margin-bottom:15px; font-weight:800;">TOP SERVICES</div>
-                    ${Object.entries(serviceMap).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n, c]) => `
-                        <div style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05)">
-                            <span style="font-size:0.9rem;">${n}</span>
-                            <span style="color:#BF953F; font-weight:700;">${c} 次</span>
+                    <h3>熱門服務排行</h3>
+                    ${Object.entries(services).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n, c]) => `
+                        <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <span>${n}</span><span style="color:var(--eth-gold); font-weight:800;">${c} 次</span>
                         </div>
                     `).join('')}
                 `;
-            } else {
-                let listHtml = apps.length ? '' : '<div style="color:var(--text-dim); text-align:center; padding:40px;">無預約紀錄</div>';
-                [...apps].reverse().forEach(a => {
-                    listHtml += `
-                        <div class="booking-item">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                                <span style="font-weight:700;">${a.name || '客戶'}</span>
-                                <span style="color:var(--accent-green); font-weight:800;">$${a.price || 0}</span>
+            } else if (tab === 'list') {
+                let list = '';
+                [...appointments].reverse().forEach(a => {
+                    list += `
+                        <div class="booking-row">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                                <strong style="font-size:1.1rem;">${a.name || '客戶'}</strong>
+                                <span style="color:#32D74B; font-weight:800;">$${a.price || 0}</span>
                             </div>
-                            <div style="font-size:0.75rem; color:var(--text-dim);">
-                                <i class="far fa-calendar-alt"></i> ${a.date || '未註記日期'} <br>
-                                <i class="fas fa-pen-nib"></i> ${a.note || '無備註'}
+                            <div style="font-size:0.8rem; color:var(--text-secondary);">
+                                日期：${a.date || '未註記'} <br> 備註：${a.note || '無'}
                             </div>
                         </div>
                     `;
                 });
-                body.innerHTML = listHtml;
+                body.innerHTML = list || '尚無預約明細';
+            } else {
+                let raw = '';
+                for (const [k, v] of Object.entries(data)) {
+                    let val = (v && v.toDate) ? v.toDate().toLocaleString() : v;
+                    if (k === 'expire' && v) val = new Date(v).toLocaleString();
+                    raw += `<div style="margin-bottom:20px;"><div style="color:var(--eth-gold); font-size:0.7rem; font-weight:800;">${k.toUpperCase()}</div><div style="font-size:1rem;">${val || 'null'}</div></div>`;
+                }
+                body.innerHTML = raw;
             }
-        } catch (e) { body.innerHTML = "無法讀取雲端數據"; }
+        } catch (e) { body.innerHTML = "無法讀取該店營運數據，請確認店號是否正確綁定。"; }
     }
 
-    // 工具函式
-    function varName(name) { return getComputedStyle(document.documentElement).getPropertyValue(name); }
     function closeDrawer() { document.getElementById('detail-drawer').classList.remove('active'); }
     function filterKeys() {
         const kw = document.getElementById('search-bar').value.toLowerCase().trim();
@@ -333,23 +349,58 @@
         });
     }
 
-    // 管理功能 (維持原本強大的 Firebase 邏輯)
+    // 管理功能 - 補回自訂天數選項
     async function modifyTime(id) {
-        const { value: m } = await Swal.fire({
-            title: 'License Control', background: 'rgba(10,10,10,0.95)', color: '#fff',
-            input: 'select', inputOptions: { 'add_30': '➕ Renew 30 Days', 'to_forever': '💎 Upgrade to Forever' },
-            confirmButtonColor: '#BF953F', showCancelButton: true
+        const { value: mode } = await Swal.fire({
+            title: '授權管理中心',
+            background: 'rgba(10,15,30,0.98)',
+            color: '#fff',
+            input: 'select',
+            inputOptions: {
+                'add_30': '➕ 續約 30 天',
+                'custom': '⌨️ 自訂天數',
+                'to_forever': '💎 升級永久'
+            },
+            confirmButtonColor: '#BF953F',
+            showCancelButton: true,
+            cancelButtonText: '取消'
         });
-        if (!m) return;
+
+        if (!mode) return;
+
         const doc = await db.collection("LicenseKeys_Booking").doc(id).get();
-        const cur = doc.data().expire, now = Date.now();
-        let base = (cur && cur > now) ? cur : now, expire = (m === 'to_forever') ? null : base + (30 * 86400000);
-        await db.collection("LicenseKeys_Booking").doc(id).update({ expire });
+        const currentData = doc.data();
+        const now = Date.now();
+        // 基數時間：若已過期從現在算，未過期從到期日往後加
+        let baseTime = (currentData.expire && currentData.expire > now) ? currentData.expire : now;
+        let newExpire;
+
+        if (mode === 'to_forever') {
+            newExpire = null;
+        } else if (mode === 'add_30') {
+            newExpire = baseTime + (30 * 86400000);
+        } else if (mode === 'custom') {
+            const { value: days } = await Swal.fire({
+                title: '請輸入天數',
+                input: 'number',
+                background: 'rgba(10,15,30,0.98)',
+                color: '#fff',
+                confirmButtonColor: '#BF953F',
+                showCancelButton: true
+            });
+            if (days && parseInt(days) > 0) {
+                newExpire = baseTime + (parseInt(days) * 86400000);
+            } else {
+                return;
+            }
+        }
+
+        await db.collection("LicenseKeys_Booking").doc(id).update({ expire: newExpire });
         fetchKeys();
     }
 
     async function deleteKey(id) {
-        if ((await Swal.fire({ title: 'Confirm Deletion?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#FF453A', background: 'rgba(10,10,10,0.95)', color: '#fff' })).isConfirmed) {
+        if ((await Swal.fire({ title: '確認註銷？', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ff453a', background: 'rgba(10,15,30,0.98)', color: '#fff' })).isConfirmed) {
             await db.collection("LicenseKeys_Booking").doc(id).delete();
             fetchKeys();
         }
