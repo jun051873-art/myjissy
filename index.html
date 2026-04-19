@@ -95,7 +95,8 @@
         .key-card:hover { transform: scale(1.02); border-color: rgba(255,255,255,0.3); opacity: 1; }
         .key-card.hidden { display: none; }
 
-        .owner-info h2 { margin: 0 0 10px 0; font-size: 1.6rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+        .owner-info h2 { margin: 0 0 10px 0; font-size: 1.6rem; font-weight: 800; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; }
+        .owner-info h2:hover { color: var(--eth-gold); }
         .key-badge {
             display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px;
             background: rgba(191, 149, 63, 0.1); color: var(--eth-gold);
@@ -185,6 +186,7 @@
 </div>
 
 <script>
+    // --- Firebase 配置 ---
     const firebaseConfig = {
         apiKey: "AIzaSyCMgz-UEFux6v1kcZhuvHaeSxhqxx-9zT4",
         authDomain: "salonsystem-71566.firebaseapp.com",
@@ -208,8 +210,6 @@
             snap.forEach(doc => {
                 const data = doc.data(), keyId = doc.id;
                 const isPermanent = !data.expire;
-                
-                // 🔹 識別主副金鑰邏輯 (假設主號才有 salonId 或依據 parentKey 判定)
                 const isSub = data.parentKey || data.masterId || (data.role === 'staff');
                 const parentId = data.parentKey || data.masterId || "";
 
@@ -228,7 +228,9 @@
                 card.dataset.search = `${data.ownerName} ${data.salonId} ${keyId} ${isSub ? '副金鑰 sub' : '主金鑰 master'}`.toLowerCase();
                 card.innerHTML = `
                     <div class="owner-info">
-                        <h2>${data.ownerName || '未命名'} ${isSub ? '<span class="role-tag role-sub">SUB</span>' : '<span class="role-tag role-master">MASTER</span>'}</h2>
+                        <h2 onclick="editName('${keyId}', '${data.ownerName || ''}')">
+                            ${data.ownerName || '未命名'} ${isSub ? '<span class="role-tag role-sub">SUB</span>' : '<span class="role-tag role-master">MASTER</span>'}
+                        </h2>
                         <div class="key-badge" onclick="openDetail('${keyId}')"><i class="fas fa-fingerprint"></i> ${keyId}</div>
                         <p style="margin-top:15px; color:var(--text-secondary); font-size:0.9rem;">
                             ${isSub ? `<i class="fas fa-link"></i> 隸屬主號：${parentId.substring(0,8)}...` : `<i class="fas fa-store"></i> 店號：${data.salonId || '---'}`}
@@ -248,6 +250,25 @@
             document.getElementById('count-active').innerText = active;
             document.getElementById('count-warning').innerText = warning;
         } catch (e) { console.error(e); }
+    }
+
+    // 🆕 補回自定義名稱編輯功能
+    async function editName(id, currentName) {
+        const { value: newName } = await Swal.fire({
+            title: '編輯店家名稱',
+            input: 'text',
+            inputValue: currentName,
+            background: 'rgba(10,15,30,0.98)',
+            color: '#fff',
+            confirmButtonColor: '#BF953F',
+            showCancelButton: true,
+            cancelButtonText: '取消'
+        });
+
+        if (newName !== undefined && newName !== currentName) {
+            await db.collection("LicenseKeys_Booking").doc(id).update({ ownerName: newName });
+            fetchKeys();
+        }
     }
 
     async function modifyTime(id) {
