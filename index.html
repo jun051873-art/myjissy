@@ -23,13 +23,11 @@
         .container { max-width: 900px; margin: 0 auto; }
         .title-brand { font-size: 3rem; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 30px; }
 
-        /* 🚀 頂部數據看板 */
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
         .stat-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 20px; text-align: center; backdrop-filter: blur(20px); }
         .stat-val { font-size: 1.8rem; font-weight: 800; display: block; margin-bottom: 5px; }
         .stat-label { font-size: 0.7rem; opacity: 0.5; }
 
-        /* 💳 金鑰卡片樣式 */
         .key-card {
             background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 28px;
             padding: 25px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;
@@ -42,7 +40,6 @@
         .role-master { background: var(--gold-gradient); color: #000; }
         .role-sub { background: #007AFF; color: #fff; }
 
-        /* 🚀 側邊數據面板 */
         .detail-drawer {
             position: fixed; top: 0; right: -100%; width: 100%; max-width: 600px; height: 100vh;
             background: rgba(10, 15, 30, 0.98); backdrop-filter: blur(80px); z-index: 2000;
@@ -57,7 +54,7 @@
         .btn-action { background: var(--gold-gradient); color: #000; border: none; border-radius: 15px; padding: 12px 25px; font-weight: 800; cursor: pointer; }
         .btn-del { background: rgba(255,0,0,0.1); color: var(--danger); border: 1px solid rgba(255,0,0,0.2); padding: 12px; border-radius: 15px; margin-left: 10px; cursor: pointer; }
         
-        .editable-name { cursor: pointer; transition: 0.2s; border-bottom: 1px dashed transparent; }
+        .editable-name { cursor: pointer; border-bottom: 1px dashed transparent; }
         .editable-name:hover { color: var(--eth-gold); border-bottom: 1px dashed var(--eth-gold); }
     </style>
 </head>
@@ -78,7 +75,7 @@
 
 <div id="detail-drawer" class="detail-drawer">
     <div class="drawer-header">
-        <h2 id="drawer-title" style="margin:0;">-</h2>
+        <h2 id="drawer-title" style="margin:0;">載入數據中...</h2>
         <div onclick="closeDrawer()" style="cursor:pointer; font-size:2rem;">&times;</div>
     </div>
     <div class="drawer-body" id="drawer-content"></div>
@@ -105,15 +102,23 @@
         listArea.innerHTML = '';
         allKeysCache = {};
 
-        // 🔹 預載快取
+        // 預載快取以便判斷主副關係
         snap.forEach(doc => { allKeysCache[doc.id] = doc.data(); });
 
         snap.forEach(doc => {
             const data = doc.data(), keyId = doc.id;
             const isSub = data.parentKey || data.masterId || (data.role === 'staff');
             const parentId = data.parentKey || data.masterId || "";
-            const masterInfo = isSub ? allKeysCache[parentId] : null;
-            const isGhost = isSub && !masterInfo; // 只有真的抓不到主號才顯示失效
+            
+            // 🚀 核心顯示邏輯修正
+            let masterInfo = isSub ? allKeysCache[parentId] : null;
+            
+            // 如果根據 parentId 找不到，嘗試根據 salonId 搜尋是否有 admin
+            if (isSub && !masterInfo && data.salonId) {
+                masterInfo = Object.values(allKeysCache).find(k => k.salonId === data.salonId && (k.role === 'admin' || !k.parentKey));
+            }
+
+            const isGhost = isSub && !masterInfo; 
 
             let timeTxt = "💎 永久授權", statusColor = "#32D74B";
             if (data.expire) {
@@ -134,10 +139,10 @@
                         ${data.ownerName || '未命名'} <span class="role-tag ${isSub ? 'role-sub' : 'role-master'}">${isSub ? '副金鑰' : '主金鑰'}</span>
                     </h2>
                     <div style="margin-top:10px; cursor:pointer; color:var(--eth-gold); font-size:0.9rem;" onclick="openDetail('${keyId}')">
-                        <i class="fas fa-search-plus"></i> 查看顧客消費資料庫
+                        <i class="fas fa-chart-line"></i> 查看每筆消費與顧客庫
                     </div>
                     <div style="font-size:0.8rem; margin-top:8px; opacity:0.5;">
-                        ${isSub ? (isGhost ? '<span style="color:#ff453a">⚠️ 主金鑰已剔除</span>' : `隸屬：${masterInfo.ownerName}`) : `店號：${data.salonId}`}
+                        ${isSub ? (isGhost ? '<span style="color:#ff453a">⚠️ 主金鑰已剔除</span>' : `隸屬於：${masterInfo.ownerName || '主號'}`) : `店號：${data.salonId}`}
                     </div>
                 </div>
                 <div style="text-align:right;">
@@ -155,25 +160,14 @@
         document.getElementById('count-warning').innerText = warning;
     }
 
-    // 🚀 自由修改店家名稱功能
     async function editName(id, current) {
-        const { value: newName } = await Swal.fire({
-            title: '修改店家名稱',
-            input: 'text',
-            inputValue: current,
-            background: '#121212', color: '#fff',
-            confirmButtonColor: '#BF953F',
-            showCancelButton: true
-        });
-        if (newName !== undefined) {
-            await db.collection("LicenseKeys_Booking").doc(id).update({ ownerName: newName });
-            fetchKeys();
-        }
+        const { value: newName } = await Swal.fire({ title: '修改名稱', input: 'text', inputValue: current, background: '#121212', color: '#fff', confirmButtonColor: '#BF953F', showCancelButton: true });
+        if (newName) { await db.collection("LicenseKeys_Booking").doc(id).update({ ownerName: newName }); fetchKeys(); }
     }
 
     async function manageLicense(id) {
         const { value: mode } = await Swal.fire({
-            title: '授權管理',
+            title: '授權控管',
             background: '#121212', color: '#fff',
             input: 'select',
             inputOptions: { 'append': '🟢 疊加天數 (續約)', 'reset': '🔵 修正天數 (校正)', 'forever': '👑 升級永久' },
@@ -181,14 +175,14 @@
         });
         if (!mode) return;
         const now = Date.now();
-        const data = allKeysCache[id];
-        let base = (data.expire && data.expire > now) ? data.expire : now;
+        const docData = allKeysCache[id];
+        let base = (docData.expire && docData.expire > now) ? docData.expire : now;
 
         if (mode === 'forever') await db.collection("LicenseKeys_Booking").doc(id).update({ expire: null });
         else {
-            const { value: days } = await Swal.fire({ title:'輸入天數', input:'number', background:'#121212', color:'#fff' });
+            const { value: days } = await Swal.fire({ title: '輸入天數', input: 'number', background: '#121212', color: '#fff' });
             if (days) {
-                let final = (mode === 'append') ? (base + (days*86400000)) : (now + (days*86400000));
+                let final = (mode === 'append') ? (base + (days * 86400000)) : (now + (days * 86400000));
                 await db.collection("LicenseKeys_Booking").doc(id).update({ expire: final });
             }
         }
@@ -201,24 +195,29 @@
         const content = document.getElementById('drawer-content');
         document.getElementById('drawer-title').innerText = data.ownerName;
         drawer.classList.add('active');
-        content.innerHTML = '正在穿透雲端數據...';
+        content.innerHTML = '正在穿透雲端顧客庫...';
 
         try {
             const sSnap = await db.collection("Salons").doc(data.salonId).get();
             const sData = sSnap.exists ? sSnap.data() : {};
             const apps = sData.appointments || [];
             const services = sData.serviceItems || []; 
+            const customers = sData.customers || []; // 顧客資料庫
             let totalRev = 0;
             apps.forEach(a => { if(a.done) totalRev += parseFloat(a.price || 0); });
 
             content.innerHTML = `
-                <div style="background:rgba(255,255,255,0.05); padding:30px; border-radius:25px; text-align:center; margin-bottom:25px;">
+                <div class="data-hero">
                     <div style="opacity:0.6; font-size:0.8rem;">營業總額</div>
-                    <div style="font-size:3rem; font-weight:900; background:var(--gold-gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">$${totalRev.toLocaleString()}</div>
+                    <div class="revenue-val">$${totalRev.toLocaleString()}</div>
                 </div>
-                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px;">店家設定服務項目</h4>
+                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px;">店內服務項目</h4>
                 <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:25px;">
                     ${services.length ? services.map(s => `<span style="background:rgba(255,255,255,0.1); padding:5px 12px; border-radius:10px; font-size:0.8rem;">${s.name || s}</span>`).join('') : '未設定項目'}
+                </div>
+                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px;">顧客資料庫概況 (${customers.length} 位)</h4>
+                <div style="font-size:0.85rem; opacity:0.7; margin-bottom:25px;">
+                    ${customers.slice(0, 10).map(c => `[${c.name || '未命名'}]`).join(', ')} ${customers.length > 10 ? '...' : ''}
                 </div>
                 <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px;">顧客詳細消費明細 (${apps.length} 筆)</h4>
                 ${apps.reverse().map(a => `
@@ -227,7 +226,7 @@
                             <span>${a.name || '訪客'} <small style="opacity:0.4;">${a.phone || ''}</small></span>
                             <span style="color:#32D74B;">$${a.price || 0}</span>
                         </div>
-                        <div style="font-size:0.8rem; opacity:0.6; margin-top:8px;">
+                        <div style="font-size:0.75rem; opacity:0.6; margin-top:8px;">
                             時間：${a.date} | 項目：${a.note || '未填寫'} <br>
                             狀態：${a.done ? '✅ 已結帳' : '⏳ 預約中'}
                         </div>
