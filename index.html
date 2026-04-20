@@ -20,6 +20,7 @@
             --text-primary: #ffffff;
             --text-secondary: rgba(255, 255, 255, 0.5);
             --gold-gradient: linear-gradient(135deg, #BF953F 0%, #FCF6BA 45%, #B38728 70%, #FBF5B7 100%);
+            --danger: #ff453a;
         }
 
         /* 🌌 以太流呼吸背景 */
@@ -86,7 +87,8 @@
             align-items: center; backdrop-filter: blur(40px); transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative; overflow: hidden;
         }
-        .key-card.is-sub { transform: scale(0.96); opacity: 0.85; }
+        .key-card.is-sub { transform: scale(0.96); opacity: 0.85; border-left: 4px solid #007AFF; }
+        .key-card.is-ghost { border: 1px solid var(--danger); background: rgba(255, 69, 58, 0.05); }
         .key-card::after {
             content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
             background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 60%);
@@ -107,7 +109,7 @@
 
         .role-tag { font-size: 0.6rem; font-weight: 900; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; }
         .role-master { background: var(--gold-gradient); color: #000; }
-        .role-sub { background: rgba(0, 122, 255, 0.2); color: #007AFF; border: 1px solid rgba(0, 122, 255, 0.3); }
+        .role-sub { background: #007AFF; color: #fff; }
 
         .detail-drawer {
             position: fixed; top: 0; right: -100%; width: 100%; max-width: 550px; height: 100vh;
@@ -186,7 +188,6 @@
 </div>
 
 <script>
-    // --- Firebase 配置 ---
     const firebaseConfig = {
         apiKey: "AIzaSyCMgz-UEFux6v1kcZhuvHaeSxhqxx-9zT4",
         authDomain: "salonsystem-71566.firebaseapp.com",
@@ -199,6 +200,7 @@
     const db = firebase.firestore();
 
     let currentOpenKey = "";
+    let allKeysCache = {}; // 用於主副金鑰比對
 
     async function fetchKeys() {
         const listArea = document.getElementById('key-list');
@@ -206,12 +208,20 @@
             const snap = await db.collection("LicenseKeys_Booking").orderBy("createdAt", "desc").get();
             let total = snap.size, active = 0, warning = 0, now = Date.now();
             listArea.innerHTML = '';
+            allKeysCache = {};
+            
+            // 建立快取以便搜尋主號名稱
+            snap.forEach(doc => { allKeysCache[doc.id] = doc.data(); });
 
             snap.forEach(doc => {
                 const data = doc.data(), keyId = doc.id;
                 const isPermanent = !data.expire;
                 const isSub = data.parentKey || data.masterId || (data.role === 'staff');
                 const parentId = data.parentKey || data.masterId || "";
+                
+                // 🔹 識別隸屬主號名稱
+                const parentName = isSub ? (allKeysCache[parentId]?.ownerName || null) : null;
+                const isGhost = isSub && !parentName; // 主號已不在資料庫
 
                 let statusColor = "#32D74B", timeTxt = "👑 永久授權";
                 if (!isPermanent) {
@@ -224,8 +234,8 @@
                 } else active++;
 
                 const card = document.createElement('div');
-                card.className = `key-card ${isSub ? 'is-sub' : ''}`;
-                card.dataset.search = `${data.ownerName} ${data.salonId} ${keyId} ${isSub ? '副金鑰 sub' : '主金鑰 master'}`.toLowerCase();
+                card.className = `key-card ${isSub ? 'is-sub' : ''} ${isGhost ? 'is-ghost' : ''}`;
+                card.dataset.search = `${data.ownerName} ${data.salonId} ${keyId} ${isSub ? '副' : '主'}`.toLowerCase();
                 card.innerHTML = `
                     <div class="owner-info">
                         <h2 onclick="editName('${keyId}', '${data.ownerName || ''}')">
@@ -233,13 +243,13 @@
                         </h2>
                         <div class="key-badge" onclick="openDetail('${keyId}')"><i class="fas fa-fingerprint"></i> ${keyId}</div>
                         <p style="margin-top:15px; color:var(--text-secondary); font-size:0.9rem;">
-                            ${isSub ? `<i class="fas fa-link"></i> 隸屬主號：${parentId.substring(0,8)}...` : `<i class="fas fa-store"></i> 店號：${data.salonId || '---'}`}
+                            ${isSub ? (isGhost ? '<span style="color:var(--danger)">⚠️ 主金鑰已失效/剔除</span>' : `<i class="fas fa-link"></i> 隸屬：${parentName}`) : `<i class="fas fa-store"></i> 店號：${data.salonId || '---'}`}
                         </p>
                     </div>
                     <div style="text-align:right;">
                         <div style="color:${statusColor}; font-size:1.1rem; font-weight:800; margin-bottom:20px;">${timeTxt}</div>
                         <div style="display:flex;">
-                            <button class="btn-action" onclick="modifyTime('${keyId}')">${isSub ? '調整副號' : '管理主號'}</button>
+                            <button class="btn-action" onclick="modifyTime('${keyId}')">管理</button>
                             <button class="btn-del" onclick="deleteKey('${keyId}')"><i class="fas fa-trash-alt"></i></button>
                         </div>
                     </div>
@@ -252,68 +262,37 @@
         } catch (e) { console.error(e); }
     }
 
-    // 🆕 補回自定義名稱編輯功能
     async function editName(id, currentName) {
         const { value: newName } = await Swal.fire({
-            title: '編輯店家名稱',
-            input: 'text',
-            inputValue: currentName,
-            background: 'rgba(10,15,30,0.98)',
-            color: '#fff',
-            confirmButtonColor: '#BF953F',
-            showCancelButton: true,
-            cancelButtonText: '取消'
+            title: '編輯名稱', input: 'text', inputValue: currentName,
+            background: 'rgba(10,15,30,0.98)', color: '#fff', confirmButtonColor: '#BF953F', showCancelButton: true
         });
-
-        if (newName !== undefined && newName !== currentName) {
-            await db.collection("LicenseKeys_Booking").doc(id).update({ ownerName: newName });
-            fetchKeys();
-        }
+        if (newName) { await db.collection("LicenseKeys_Booking").doc(id).update({ ownerName: newName }); fetchKeys(); }
     }
 
     async function modifyTime(id) {
         const { value: mode } = await Swal.fire({
-            title: '授權管理中心',
-            background: 'rgba(10,15,30,0.98)',
-            color: '#fff',
+            title: '授權管理', background: 'rgba(10,15,30,0.98)', color: '#fff',
             input: 'select',
-            inputOptions: {
-                'add_30': '➕ 續約 30 天',
-                'custom': '⌨️ 自訂天數',
-                'to_forever': '💎 升級永久'
-            },
-            confirmButtonColor: '#BF953F',
-            showCancelButton: true
+            inputOptions: { 'add': '➕ 快速續約 30 天', 'edit': '⌨️ 修改/設定天數', 'forever': '💎 升級永久' },
+            confirmButtonColor: '#BF953F', showCancelButton: true
         });
-
         if (!mode) return;
 
         const doc = await db.collection("LicenseKeys_Booking").doc(id).get();
-        const currentData = doc.data();
+        const curExpire = doc.data().expire;
         const now = Date.now();
-        let baseTime = (currentData.expire && currentData.expire > now) ? currentData.expire : now;
         let newExpire;
 
-        if (mode === 'to_forever') {
-            newExpire = null;
-        } else if (mode === 'add_30') {
-            newExpire = baseTime + (30 * 86400000);
-        } else if (mode === 'custom') {
-            const { value: days } = await Swal.fire({
-                title: '請輸入天數',
-                input: 'number',
-                background: 'rgba(10,15,30,0.98)',
-                color: '#fff',
-                confirmButtonColor: '#BF953F',
-                showCancelButton: true
-            });
-            if (days && parseInt(days) > 0) {
-                newExpire = baseTime + (parseInt(days) * 86400000);
-            } else {
-                return;
-            }
+        if (mode === 'forever') newExpire = null;
+        else if (mode === 'add') {
+            let base = (curExpire && curExpire > now) ? curExpire : now;
+            newExpire = base + (30 * 86400000);
+        } else {
+            const { value: days } = await Swal.fire({ title: '設定天數', text: '輸入從今日起算的總天數', input: 'number', background: '#1a1a1a', color: '#fff' });
+            if (days !== undefined) newExpire = now + (parseInt(days) * 86400000);
+            else return;
         }
-
         await db.collection("LicenseKeys_Booking").doc(id).update({ expire: newExpire });
         fetchKeys();
     }
@@ -338,43 +317,38 @@
 
         try {
             const sSnap = await db.collection("Salons").doc(salonId).get();
-            const appointments = sSnap.exists ? (sSnap.data().appointments || []) : [];
+            const sData = sSnap.exists ? sSnap.data() : {};
+            const apps = sData.appointments || [];
+            const serviceItems = sData.serviceItems || [];
 
             if (tab === 'stats') {
-                let rev = 0, services = {};
-                appointments.forEach(a => {
-                    if (a.done) rev += parseFloat(a.price || a.amount || 0);
-                    let s = a.note || '其他項目';
-                    services[s] = (services[s] || 0) + 1;
-                });
+                let rev = 0;
+                apps.forEach(a => { if (a.done) rev += parseFloat(a.price || 0); });
                 body.innerHTML = `
                     <div class="data-hero">
-                        <p style="margin:0; font-size:0.8rem; color:var(--eth-gold); font-weight:800; letter-spacing:2px;">TOTAL REVENUE</p>
+                        <p style="margin:0; font-size:0.8rem; color:var(--eth-gold); font-weight:800;">營業總額</p>
                         <div class="revenue-val">$${rev.toLocaleString()}</div>
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:30px;">
-                        <div class="stat-card"><div class="stat-label">客次總量</div><div class="stat-value">${appointments.length}</div></div>
-                        <div class="stat-card"><div class="stat-label">成交率</div><div class="stat-value">${Math.round((appointments.filter(a=>a.done).length/appointments.length)*100) || 0}%</div></div>
+                    <h4 style="margin-top:30px; border-left:4px solid var(--eth-gold); padding-left:10px;">設定服務項目</h4>
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; margin:15px 0;">
+                        ${serviceItems.length ? serviceItems.map(s => `<span style="background:rgba(255,255,255,0.05); padding:5px 12px; border-radius:10px; font-size:0.85rem;">${s.name || s}</span>`).join('') : '<span style="opacity:0.3">未設定項目</span>'}
                     </div>
-                    <h3>熱門服務排行</h3>
-                    ${Object.entries(services).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n, c]) => `
-                        <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-                            <span>${n}</span><span style="color:var(--eth-gold); font-weight:800;">${c} 次</span>
-                        </div>
-                    `).join('')}
+                    <h4 style="margin-top:30px; border-left:4px solid var(--eth-gold); padding-left:10px;">顧客資料概況</h4>
+                    <div class="booking-row" style="margin-top:15px;">
+                        總服務客次：${apps.length} 筆<br>
+                        成交筆數：${apps.filter(x=>x.done).length} 筆<br>
+                        最新預約顧客：${apps.length ? apps[apps.length-1].name : '無'}
+                    </div>
                 `;
             } else if (tab === 'list') {
                 let list = '';
-                [...appointments].reverse().forEach(a => {
+                [...apps].reverse().forEach(a => {
                     list += `<div class="booking-row">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                            <strong style="font-size:1.1rem;">${a.name || '客戶'}</strong>
-                            <span style="color:#32D74B; font-weight:800;">$${a.price || 0}</span>
-                        </div>
-                        <div style="font-size:0.8rem; color:var(--text-secondary);">日期：${a.date || '未註記'} <br> 備註：${a.note || '無'}</div>
+                        <div style="display:flex; justify-content:space-between;"><strong>${a.name || '客戶'}</strong><span style="color:#32D74B;">$${a.price || 0}</span></div>
+                        <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:5px;">${a.date || ''} | ${a.note || ''}</div>
                     </div>`;
                 });
-                body.innerHTML = list || '尚無預約明細';
+                body.innerHTML = list || '尚無明細';
             } else {
                 let raw = '';
                 for (const [k, v] of Object.entries(doc.data())) {
