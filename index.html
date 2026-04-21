@@ -19,7 +19,7 @@
             --danger: #ff453a;
         }
 
-        body { background: #000; margin: 0; padding: 20px; font-family: 'Montserrat', 'Noto Sans TC', sans-serif; color: #fff; min-height: 100vh; }
+        body { background: #000; margin: 0; padding: 20px; font-family: 'Montserrat', 'Noto Sans TC', sans-serif; color: #fff; min-height: 100vh; overflow-x: hidden; }
         .container { max-width: 900px; margin: 0 auto; }
         .title-brand { font-size: 3rem; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 30px; }
 
@@ -93,7 +93,7 @@
         messagingSenderId: "629392896879",
         appId: "1:629392896879:web:88111e1d5416eb104fee9a"
     };
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     let allKeysCache = {}; 
@@ -161,7 +161,10 @@
 
     async function editName(id, current) {
         const { value: newName } = await Swal.fire({ title: '修改名稱', input: 'text', inputValue: current, background: '#121212', color: '#fff', confirmButtonColor: '#BF953F', showCancelButton: true });
-        if (newName) { await db.collection("LicenseKeys_Booking").doc(id).update({ ownerName: newName }); fetchKeys(); }
+        if (newName !== undefined && newName !== "") { 
+            await db.collection("LicenseKeys_Booking").doc(id).update({ ownerName: newName }); 
+            fetchKeys(); 
+        }
     }
 
     async function manageLicense(id) {
@@ -188,14 +191,13 @@
         fetchKeys();
     }
 
-    // 🚀 V318 數據穿透大腦：修正欄位抓取對齊前端架構
     async function openDetail(id) {
         const data = allKeysCache[id];
         const drawer = document.getElementById('detail-drawer');
         const content = document.getElementById('drawer-content');
         document.getElementById('drawer-title').innerText = data.ownerName;
         drawer.classList.add('active');
-        content.innerHTML = '<div style="text-align:center;padding:50px;">正在穿透雲端顧客庫...</div>';
+        content.innerHTML = '<div style="text-align:center;padding:50px;"><i class="fas fa-spinner fa-spin"></i> 正在穿透雲端顧客庫...</div>';
 
         try {
             const sSnap = await db.collection("Salons").doc(data.salonId).get();
@@ -206,36 +208,36 @@
 
             const sData = sSnap.data();
             const apps = sData.appointments || []; 
-            const tags = sData.tags || [];         
-            const clients = sData.clients || [];   
-            const stylists = sData.stylists || []; 
+            const tags = sData.tags || [];          
+            const clients = sData.clients || [];    
+            const stylists = sData.stylists || [];  
 
             let totalRev = 0;
             apps.forEach(a => { if(a.done) totalRev += parseFloat(a.price || 0); });
 
             content.innerHTML = `
                 <div class="data-hero">
-                    <div style="opacity:0.7; font-size:0.8rem; font-weight:900;">V318 實時總業績</div>
+                    <div style="opacity:0.7; font-size:0.8rem; font-weight:900;">實時總業績 (V318 系統)</div>
                     <div class="revenue-val">$${totalRev.toLocaleString()}</div>
                 </div>
 
                 <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">團隊成員 (${stylists.length})</h4>
                 <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:25px;">
-                    ${stylists.map(s => `<span style="background:rgba(255,255,255,0.1); padding:6px 15px; border-radius:12px; font-size:0.8rem; border:1px solid ${s.color || '#fff'}">${s.name}</span>`).join('')}
+                    ${stylists.length ? stylists.map(s => `<span style="background:rgba(255,255,255,0.1); padding:6px 15px; border-radius:12px; font-size:0.8rem; border:1px solid ${s.color || '#fff'}">${s.name}</span>`).join('') : '無設定'}
                 </div>
 
                 <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">服務項目 (${tags.length})</h4>
                 <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:25px;">
-                    ${tags.map(t => `<span style="background:rgba(212,175,55,0.1); color:var(--eth-gold); padding:6px 15px; border-radius:12px; font-size:0.8rem;">${t.name}</span>`).join('')}
+                    ${tags.length ? tags.map(t => `<span style="background:rgba(212,175,55,0.1); color:var(--eth-gold); padding:6px 15px; border-radius:12px; font-size:0.8rem;">${t.name}</span>`).join('') : '無設定'}
                 </div>
 
                 <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">顧客庫概況 (${clients.length} 位)</h4>
                 <div style="font-size:0.85rem; opacity:0.7; margin-bottom:25px; background:rgba(255,255,255,0.03); padding:15px; border-radius:15px;">
-                    ${clients.slice(0, 15).map(c => c.n).join('、')} ${clients.length > 15 ? '...' : ''}
+                    ${clients.slice(0, 15).map(c => c.n || '匿名').join('、')} ${clients.length > 15 ? '...' : ''}
                 </div>
 
                 <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">最近消費明細</h4>
-                ${apps.slice().reverse().slice(0, 20).map(a => `
+                ${apps.slice().reverse().slice(0, 30).map(a => `
                     <div class="record-card" style="${a.done ? 'border-left:5px solid #32D74B;' : 'border-left:5px solid #FF9F0A;'}">
                         <div style="display:flex; justify-content:space-between; font-weight:800;">
                             <span>${a.n || '訪客'} <small style="opacity:0.4;">${a.p || ''}</small></span>
@@ -246,7 +248,7 @@
                             狀態：${a.done ? '✅ 已結帳' : '⏳ 預約中'}
                         </div>
                     </div>
-                `).join('')}
+                `).join('') || '尚無紀錄'}
             `;
         } catch (e) { 
             console.error(e);
