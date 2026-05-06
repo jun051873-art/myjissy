@@ -167,30 +167,90 @@
         }
     }
 
-    async function manageLicense(id) {
-        const { value: mode } = await Swal.fire({
-            title: '授權控管',
-            background: '#121212', color: '#fff',
-            input: 'select',
-            inputOptions: { 'append': '🟢 疊加天數 (續約)', 'reset': '🔵 修正天數 (校正)', 'forever': '👑 升級永久' },
-            confirmButtonColor: '#BF953F', showCancelButton: true
-        });
-        if (!mode) return;
-        const now = Date.now();
-        const docData = allKeysCache[id];
-        let base = (docData.expire && docData.expire > now) ? docData.expire : now;
+// ==========================================================================
+// --- 🚀 核心控管：續約、永久、封鎖三合一 ---
+// ==========================================================================
+async function manageLicense(id) {
+    const docData = allKeysCache[id];
+    const salonId = docData.salonId; // 取得對應店號
+    const now = Date.now();
 
-        if (mode === 'forever') await db.collection("LicenseKeys_Booking").doc(id).update({ expire: null });
-        else {
-            const { value: days } = await Swal.fire({ title: '輸入天數', input: 'number', background: '#121212', color: '#fff' });
-            if (days) {
-                let final = (mode === 'append') ? (base + (days * 86400000)) : (now + (days * 86400000));
-                await db.collection("LicenseKeys_Booking").doc(id).update({ expire: final });
-            }
-        }
+    const { value: mode } = await Swal.fire({
+        title: `管理店號：${salonId}`,
+        text: `負責人：${docData.ownerName || '未命名'}`,
+        background: '#121212', color: '#fff',
+        input: 'select',
+        inputOptions: { 
+            'append': '🟢 續約 (疊加天數)', 
+            'reset': '🔵 重新設定 (指定天數)', 
+            'forever': '👑 升級為永久授權',
+            'block': '🚫 立即封鎖 (禁止登入)',
+            'active': '✅ 解除封鎖 (恢復運作)'
+        },
+        confirmButtonColor: '#BF953F', 
+        showCancelButton: true,
+        cancelButtonText: '取消'
+    });
+
+    if (!mode) return;
+
+    // --- 處理封鎖與復權 ---
+    if (mode === 'block' || mode === 'active') {
+        const newStatus = (mode === 'block') ? 'blocked' : 'active';
+        await db.collection("Salons").doc(salonId).update({ status: newStatus });
+        await db.collection("LicenseKeys_Booking").doc(id).update({ status: newStatus });
+        Swal.fire('執行成功', `店號 ${salonId} 目前狀態：${newStatus}`, 'success');
         fetchKeys();
+        return;
     }
 
+    // --- 處理永久授權 ---
+    if (mode === 'forever') {
+        const confirm = await Swal.fire({
+            title: '確定升級為永久？',
+            text: '升級後該店號將不再受時間限制。',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: '確定升級'
+        });
+        if (confirm.isConfirmed) {
+            await updateCloudSalon(salonId, null, id); // 清除過期時間
+            Swal.fire('已升級', '該店號已轉為永久授權', 'success');
+        }
+    } 
+    // --- 處理時間設定 (續約或重設) ---
+    else {
+        const { value: days } = await Swal.fire({ 
+            title: mode === 'append' ? '要增加多少天？' : '設定剩餘天數', 
+            input: 'number', 
+            inputPlaceholder: '請輸入天數',
+            background: '#121212', color: '#fff' 
+        });
+
+        if (days) {
+            let baseTime = (mode === 'append' && docData.expire && docData.expire > now) ? docData.expire : now;
+            let finalExpire = baseTime + (parseInt(days) * 86400000);
+            await updateCloudSalon(salonId, finalExpire, id);
+            Swal.fire('設定完成', `店號 ${salonId} 延長至 ${new Date(finalExpire).toLocaleDateString()}`, 'success');
+        }
+    }
+    fetchKeys(); // 刷新列表
+}
+
+// --- 🚀 輔助函數：確保 Salons 與 LicenseKeys 同步更新 ---
+async function updateCloudSalon(salonId, expireTime, keyDocId) {
+    // 1. 更新金鑰庫 (後台顯示用)
+    await db.collection("LicenseKeys_Booking").doc(keyDocId).update({ 
+        expire: expireTime 
+    });
+
+    // 2. 更新店鋪庫 (前端驗證用)
+    // 這是最關鍵的一步，前端 checkLicense 是看這裡！
+    await db.collection("Salons").doc(salonId).set({ 
+        expiryDate: expireTime,
+        status: "active" // 設定時間後自動恢復為 active
+    }, { merge: true }); // 使用 merge 確保不會覆蓋掉預約資料
+}
     async function openDetail(id) {
         const data = allKeysCache[id];
         const drawer = document.getElementById('detail-drawer');
