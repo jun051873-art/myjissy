@@ -21,7 +21,11 @@
 
         body { background: #000; margin: 0; padding: 20px; font-family: 'Montserrat', 'Noto Sans TC', sans-serif; color: #fff; min-height: 100vh; overflow-x: hidden; }
         .container { max-width: 900px; margin: 0 auto; }
-        .title-brand { font-size: 3rem; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 30px; }
+        
+        /* 🚀 標題欄配置 */
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .title-brand { font-size: 2.2rem; font-weight: 900; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }
+        .btn-add-main { background: var(--gold-gradient); color: #000; border: none; padding: 12px 20px; border-radius: 50px; font-weight: 900; cursor: pointer; font-size: 0.9rem; box-shadow: 0 10px 20px rgba(191,149,63,0.3); }
 
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
         .stat-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 20px; text-align: center; backdrop-filter: blur(20px); }
@@ -33,12 +37,6 @@
             padding: 25px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;
             backdrop-filter: blur(40px); transition: 0.3s;
         }
-        .key-card.is-sub { border-left: 5px solid #007AFF; transform: scale(0.98); }
-        .key-card.is-ghost { border: 2px solid var(--danger); background: rgba(255, 69, 58, 0.1); }
-
-        .role-tag { font-size: 0.65rem; font-weight: 900; padding: 4px 10px; border-radius: 6px; margin-left: 8px; vertical-align: middle; }
-        .role-master { background: var(--gold-gradient); color: #000; }
-        .role-sub { background: #007AFF; color: #fff; }
 
         .detail-drawer {
             position: fixed; top: 0; right: -100%; width: 100%; max-width: 600px; height: 100vh;
@@ -64,15 +62,18 @@
 <body>
 
 <div class="container">
-    <h1 class="title-brand">AETHER MASTER</h1>
+    <div class="header-row">
+        <h1 class="title-brand">AETHER MASTER</h1>
+        <button class="btn-add-main" onclick="createNewShop()"><i class="fas fa-plus"></i> 新增店號授權</button>
+    </div>
     
     <div class="stats-grid">
-        <div class="stat-card"><span class="stat-val" id="count-total">--</span><span class="stat-label">總授權</span></div>
+        <div class="stat-card"><span class="stat-val" id="count-total">--</span><span class="stat-label">授權總數</span></div>
         <div class="stat-card"><span class="stat-val" id="count-active" style="color:#32D74B">--</span><span class="stat-label">運行中</span></div>
-        <div class="stat-card"><span class="stat-val" id="count-warning" style="color:#FF9F0A">--</span><span class="stat-label">催款警告</span></div>
+        <div class="stat-card"><span class="stat-val" id="count-warning" style="color:#FF9F0A">--</span><span class="stat-label">到期催告</span></div>
     </div>
 
-    <input type="text" id="search-bar" style="width:100%; padding:20px; border-radius:50px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:#fff; margin-bottom:30px; outline:none;" placeholder="🔍 搜尋店號、負責人、金鑰..." onkeyup="filterKeys()">
+    <input type="text" id="search-bar" style="width:100%; padding:20px; border-radius:50px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:#fff; margin-bottom:30px; outline:none;" placeholder="🔍 搜尋店號、負責人..." onkeyup="filterKeys()">
     <div id="key-list"></div>
 </div>
 
@@ -98,6 +99,55 @@
 
     let allKeysCache = {}; 
 
+    // 🚀 [新增] 後台建立店號功能
+    async function createNewShop() {
+        const { value: formValues } = await Swal.fire({
+            title: '建立新店號授權',
+            background: '#121212',
+            color: '#fff',
+            html:
+                '<input id="swal-name" class="swal2-input" style="color:white" placeholder="負責人姓名">' +
+                '<input id="swal-id" class="swal2-input" style="color:white" placeholder="設定店號 (如: APPLE01)">',
+            focusConfirm: false,
+            confirmButtonColor: '#BF953F',
+            preConfirm: () => {
+                const name = document.getElementById('swal-name').value.trim();
+                const shopID = document.getElementById('swal-id').value.trim().toUpperCase();
+                if (!name || !shopID) { Swal.showValidationMessage('請完整填寫資訊'); return; }
+                return { name, shopID };
+            }
+        });
+
+        if (formValues) {
+            try {
+                // 1. 同步在 Salons 建立文件 (讓前端 checkLicense 通過)
+                await db.collection("Salons").doc(formValues.shopID).set({
+                    status: "active",
+                    expiryDate: null, 
+                    storeName: formValues.name,
+                    role: "admin"
+                }, { merge: true });
+
+                // 2. 在 LicenseKeys_Booking 建立紀錄 (後台清單顯示用)
+                // 為了結構一致，隨機給一個 ID 作為金鑰紀錄存檔
+                const recordId = "REC" + Date.now().toString().slice(-6);
+                await db.collection("LicenseKeys_Booking").doc(recordId).set({
+                    ownerName: formValues.name,
+                    salonId: formValues.shopID,
+                    role: "admin",
+                    status: "active",
+                    createdAt: Date.now(),
+                    expire: null
+                });
+
+                Swal.fire('成功', `店號 ${formValues.shopID} 已成功開通`, 'success');
+                fetchKeys();
+            } catch (e) {
+                Swal.fire('出錯了', e.message, 'error');
+            }
+        }
+    }
+
     async function fetchKeys() {
         const listArea = document.getElementById('key-list');
         const snap = await db.collection("LicenseKeys_Booking").orderBy("createdAt", "desc").get();
@@ -109,16 +159,8 @@
 
         snap.forEach(doc => {
             const data = doc.data(), keyId = doc.id;
-            const isSub = data.role === 'staff';
             const salonId = data.salonId || "";
             
-            let masterInfo = null;
-            if (isSub && salonId) {
-                masterInfo = Object.values(allKeysCache).find(k => k.salonId === salonId && k.role === 'admin');
-            }
-
-            const isGhost = isSub && !masterInfo; 
-
             let timeTxt = "💎 永久授權", statusColor = "#32D74B";
             if (data.expire) {
                 const days = Math.ceil((data.expire - now) / 86400000);
@@ -130,18 +172,18 @@
             } else active++;
 
             const card = document.createElement('div');
-            card.className = `key-card ${isSub ? 'is-sub' : ''} ${isGhost ? 'is-ghost' : ''}`;
-            card.dataset.search = `${data.ownerName} ${data.salonId} ${keyId}`.toLowerCase();
+            card.className = `key-card`;
+            card.dataset.search = `${data.ownerName} ${data.salonId}`.toLowerCase();
             card.innerHTML = `
                 <div style="flex:1">
                     <h2 class="editable-name" onclick="editName('${keyId}', '${data.ownerName || ''}')">
-                        ${data.ownerName || '未命名'} <span class="role-tag ${isSub ? 'role-sub' : 'role-master'}">${isSub ? '副金鑰' : '主金鑰'}</span>
+                        ${data.ownerName || '未命名'}
                     </h2>
-                    <div style="margin-top:10px; cursor:pointer; color:var(--eth-gold); font-size:0.9rem;" onclick="openDetail('${keyId}')">
-                        <i class="fas fa-chart-line"></i> 查看每筆消費與顧客庫
+                    <div style="font-size:1rem; margin-top:5px; color:var(--eth-gold); font-weight:800;">
+                        店號：${data.salonId}
                     </div>
-                    <div style="font-size:0.8rem; margin-top:8px; opacity:0.5;">
-                        ${isSub ? (isGhost ? '<span style="color:#ff453a">⚠️ 主金鑰已剔除</span>' : `隸屬於：${masterInfo ? masterInfo.ownerName : '主號'}`) : `店號：${data.salonId}`}
+                    <div style="margin-top:10px; cursor:pointer; color:var(--eth-gold); font-size:0.9rem; opacity:0.7;" onclick="openDetail('${keyId}')">
+                        <i class="fas fa-chart-line"></i> 查看實時數據與明細
                     </div>
                 </div>
                 <div style="text-align:right;">
@@ -167,12 +209,9 @@
         }
     }
 
-// ==========================================================================
-// --- 🚀 核心控管：續約、永久、封鎖三合一 ---
-// ==========================================================================
 async function manageLicense(id) {
     const docData = allKeysCache[id];
-    const salonId = docData.salonId; // 取得對應店號
+    const salonId = docData.salonId;
     const now = Date.now();
 
     const { value: mode } = await Swal.fire({
@@ -188,69 +227,41 @@ async function manageLicense(id) {
             'active': '✅ 解除封鎖 (恢復運作)'
         },
         confirmButtonColor: '#BF953F', 
-        showCancelButton: true,
-        cancelButtonText: '取消'
+        showCancelButton: true
     });
 
     if (!mode) return;
 
-    // --- 處理封鎖與復權 ---
     if (mode === 'block' || mode === 'active') {
         const newStatus = (mode === 'block') ? 'blocked' : 'active';
         await db.collection("Salons").doc(salonId).update({ status: newStatus });
         await db.collection("LicenseKeys_Booking").doc(id).update({ status: newStatus });
-        Swal.fire('執行成功', `店號 ${salonId} 目前狀態：${newStatus}`, 'success');
+        Swal.fire('執行成功', `狀態已更新為：${newStatus}`, 'success');
         fetchKeys();
         return;
     }
 
-    // --- 處理永久授權 ---
     if (mode === 'forever') {
-        const confirm = await Swal.fire({
-            title: '確定升級為永久？',
-            text: '升級後該店號將不再受時間限制。',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: '確定升級'
-        });
-        if (confirm.isConfirmed) {
-            await updateCloudSalon(salonId, null, id); // 清除過期時間
-            Swal.fire('已升級', '該店號已轉為永久授權', 'success');
-        }
+        await updateCloudSalon(salonId, null, id);
+        Swal.fire('已完成', '已設定為永久授權', 'success');
     } 
-    // --- 處理時間設定 (續約或重設) ---
     else {
-        const { value: days } = await Swal.fire({ 
-            title: mode === 'append' ? '要增加多少天？' : '設定剩餘天數', 
-            input: 'number', 
-            inputPlaceholder: '請輸入天數',
-            background: '#121212', color: '#fff' 
-        });
-
+        const { value: days } = await Swal.fire({ title: '輸入天數', input: 'number', background: '#121212', color: '#fff' });
         if (days) {
             let baseTime = (mode === 'append' && docData.expire && docData.expire > now) ? docData.expire : now;
             let finalExpire = baseTime + (parseInt(days) * 86400000);
             await updateCloudSalon(salonId, finalExpire, id);
-            Swal.fire('設定完成', `店號 ${salonId} 延長至 ${new Date(finalExpire).toLocaleDateString()}`, 'success');
+            Swal.fire('設定完成', `延長至 ${new Date(finalExpire).toLocaleDateString()}`, 'success');
         }
     }
-    fetchKeys(); // 刷新列表
+    fetchKeys();
 }
 
-// --- 🚀 輔助函數：確保 Salons 與 LicenseKeys 同步更新 ---
 async function updateCloudSalon(salonId, expireTime, keyDocId) {
-    // 1. 更新金鑰庫 (後台顯示用)
-    await db.collection("LicenseKeys_Booking").doc(keyDocId).update({ 
-        expire: expireTime 
-    });
-
-    // 2. 更新店鋪庫 (前端驗證用)
-    // 這是最關鍵的一步，前端 checkLicense 是看這裡！
-    await db.collection("Salons").doc(salonId).set({ 
-        expiryDate: expireTime,
-        status: "active" // 設定時間後自動恢復為 active
-    }, { merge: true }); // 使用 merge 確保不會覆蓋掉預約資料
+    await db.collection("LicenseKeys_Booking").doc(keyDocId).update({ expire: expireTime });
+    await db.collection("Salons").doc(salonId).set({ expiryDate: expireTime, status: "active" }, { merge: true });
 }
+
     async function openDetail(id) {
         const data = allKeysCache[id];
         const drawer = document.getElementById('detail-drawer');
@@ -262,58 +273,35 @@ async function updateCloudSalon(salonId, expireTime, keyDocId) {
         try {
             const sSnap = await db.collection("Salons").doc(data.salonId).get();
             if (!sSnap.exists) {
-                content.innerHTML = `<div style="color:#ff453a; text-align:center; padding:50px;">⚠️ 該店尚未同步任何數據 (店號: ${data.salonId})</div>`;
+                content.innerHTML = `<div style="color:#ff453a; text-align:center; padding:50px;">⚠️ 該店尚未同步任何數據</div>`;
                 return;
             }
-
             const sData = sSnap.data();
             const apps = sData.appointments || []; 
-            const tags = sData.tags || [];          
-            const clients = sData.clients || [];    
             const stylists = sData.stylists || [];  
-
             let totalRev = 0;
             apps.forEach(a => { if(a.done) totalRev += parseFloat(a.price || 0); });
 
             content.innerHTML = `
                 <div class="data-hero">
-                    <div style="opacity:0.7; font-size:0.8rem; font-weight:900;">實時總業績 (V318 系統)</div>
+                    <div style="opacity:0.7; font-size:0.8rem; font-weight:900;">實時總業績</div>
                     <div class="revenue-val">$${totalRev.toLocaleString()}</div>
                 </div>
-
-                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">團隊成員 (${stylists.length})</h4>
+                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">團隊概況</h4>
                 <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:25px;">
-                    ${stylists.length ? stylists.map(s => `<span style="background:rgba(255,255,255,0.1); padding:6px 15px; border-radius:12px; font-size:0.8rem; border:1px solid ${s.color || '#fff'}">${s.name}</span>`).join('') : '無設定'}
+                    ${stylists.length ? stylists.map(s => `<span style="background:rgba(255,255,255,0.1); padding:6px 15px; border-radius:12px; font-size:0.8rem; border:1px solid ${s.color || '#fff'}">${s.name}</span>`).join('') : '尚無團隊資料'}
                 </div>
-
-                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">服務項目 (${tags.length})</h4>
-                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:25px;">
-                    ${tags.length ? tags.map(t => `<span style="background:rgba(212,175,55,0.1); color:var(--eth-gold); padding:6px 15px; border-radius:12px; font-size:0.8rem;">${t.name}</span>`).join('') : '無設定'}
-                </div>
-
-                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">顧客庫概況 (${clients.length} 位)</h4>
-                <div style="font-size:0.85rem; opacity:0.7; margin-bottom:25px; background:rgba(255,255,255,0.03); padding:15px; border-radius:15px;">
-                    ${clients.slice(0, 15).map(c => c.n || '匿名').join('、')} ${clients.length > 15 ? '...' : ''}
-                </div>
-
-                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">最近消費明細</h4>
-                ${apps.slice().reverse().slice(0, 30).map(a => `
+                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">最近 20 筆明細</h4>
+                ${apps.slice().reverse().slice(0, 20).map(a => `
                     <div class="record-card" style="${a.done ? 'border-left:5px solid #32D74B;' : 'border-left:5px solid #FF9F0A;'}">
                         <div style="display:flex; justify-content:space-between; font-weight:800;">
-                            <span>${a.n || '訪客'} <small style="opacity:0.4;">${a.p || ''}</small></span>
+                            <span>${a.n || '訪客'}</span>
                             <span style="color:#32D74B;">$${a.price || 0}</span>
                         </div>
-                        <div style="font-size:0.75rem; opacity:0.6; margin-top:8px;">
-                            時間：${a.date} | 項目：${(a.tags || []).join(' + ')} <br>
-                            狀態：${a.done ? '✅ 已結帳' : '⏳ 預約中'}
-                        </div>
-                    </div>
-                `).join('') || '尚無紀錄'}
+                        <div style="font-size:0.75rem; opacity:0.6; margin-top:8px;">${a.date} | ${a.done ? '✅ 已結帳' : '⏳ 預約中'}</div>
+                    </div>`).join('') || '尚無消費紀錄'}
             `;
-        } catch (e) { 
-            console.error(e);
-            content.innerHTML = '<div style="color:#ff453a; text-align:center; padding:50px;">數據穿透失敗</div>'; 
-        }
+        } catch (e) { content.innerHTML = '<div style="color:#ff453a; text-align:center; padding:50px;">數據穿透失敗</div>'; }
     }
 
     function closeDrawer() { document.getElementById('detail-drawer').classList.remove('active'); }
