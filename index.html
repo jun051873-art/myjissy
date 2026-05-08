@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aether Master | 旗艦中樞</title>
+    <title>Aether Master | 授權中樞</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&family=Montserrat:wght@200;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,42 +19,21 @@
             --danger: #ff453a;
         }
 
-        body { background: #000; margin: 0; padding: 20px; font-family: 'Montserrat', 'Noto Sans TC', sans-serif; color: #fff; min-height: 100vh; overflow-x: hidden; }
+        body { background: #000; margin: 0; padding: 20px; font-family: 'Montserrat', 'Noto Sans TC', sans-serif; color: #fff; min-height: 100vh; }
         .container { max-width: 900px; margin: 0 auto; }
         .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .title-brand { font-size: 2.2rem; font-weight: 900; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }
-        .btn-add-main { background: var(--gold-gradient); color: #000; border: none; padding: 12px 20px; border-radius: 50px; font-weight: 900; cursor: pointer; font-size: 0.9rem; box-shadow: 0 10px 20px rgba(191,149,63,0.3); }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
-        .stat-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 20px; text-align: center; backdrop-filter: blur(20px); }
-        .stat-val { font-size: 1.8rem; font-weight: 800; display: block; margin-bottom: 5px; }
-        .stat-label { font-size: 0.7rem; opacity: 0.5; }
+        .btn-add-main { background: var(--gold-gradient); color: #000; border: none; padding: 12px 25px; border-radius: 50px; font-weight: 900; cursor: pointer; box-shadow: 0 10px 20px rgba(191,149,63,0.3); }
 
         .key-card {
             background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 28px;
             padding: 25px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;
-            backdrop-filter: blur(40px); transition: 0.3s;
+            backdrop-filter: blur(40px);
         }
-
-        .detail-drawer {
-            position: fixed; top: 0; right: -100%; width: 100%; max-width: 600px; height: 100vh;
-            background: rgba(10, 15, 30, 0.98); backdrop-filter: blur(80px); z-index: 2000;
-            transition: 0.6s cubic-bezier(0.16, 1, 0.3, 1); border-left: 1px solid var(--glass-border);
-            display: flex; flex-direction: column;
-        }
-        .detail-drawer.active { right: 0; box-shadow: -20px 0 60px rgba(0,0,0,0.8); }
-        .drawer-header { padding: 30px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
-        .drawer-body { flex: 1; overflow-y: auto; padding: 30px; }
-
-        .data-hero { background: var(--gold-gradient); color: #000; padding: 25px; border-radius: 25px; margin-bottom: 30px; text-align: center; }
-        .revenue-val { font-size: 2.5rem; font-weight: 900; letter-spacing: -2px; }
-
-        .record-card { background: rgba(255,255,255,0.03); padding: 18px; border-radius: 18px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05); }
-        .btn-action { background: var(--gold-gradient); color: #000; border: none; border-radius: 15px; padding: 12px 25px; font-weight: 800; cursor: pointer; }
-        .btn-del { background: rgba(255,0,0,0.1); color: var(--danger); border: 1px solid rgba(255,0,0,0.2); padding: 12px; border-radius: 15px; margin-left: 10px; cursor: pointer; }
-        
-        .editable-name { cursor: pointer; border-bottom: 1px dashed transparent; }
-        .editable-name:hover { color: var(--eth-gold); border-bottom: 1px dashed var(--eth-gold); }
+        .editable-name { cursor: pointer; color: #fff; margin: 0; }
+        .btn-action { background: var(--gold-gradient); color: #000; border: none; border-radius: 12px; padding: 10px 20px; font-weight: 800; cursor: pointer; }
+        .btn-del { color: var(--danger); margin-left: 15px; cursor: pointer; opacity: 0.6; }
+        .btn-del:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -62,28 +41,14 @@
 <div class="container">
     <div class="header-row">
         <h1 class="title-brand">AETHER MASTER</h1>
-        <button class="btn-add-main" onclick="createNewShop()"><i class="fas fa-plus"></i> 新增店號授權</button>
-    </div>
-    
-    <div class="stats-grid">
-        <div class="stat-card"><span class="stat-val" id="count-total">--</span><span class="stat-label">授權總數</span></div>
-        <div class="stat-card"><span class="stat-val" id="count-active" style="color:#32D74B">--</span><span class="stat-label">運行中</span></div>
-        <div class="stat-card"><span class="stat-val" id="count-warning" style="color:#FF9F0A">--</span><span class="stat-label">到期催告</span></div>
+        <button class="btn-add-main" onclick="createNewShop()"><i class="fas fa-plus"></i> 生成新金鑰</button>
     </div>
 
-    <input type="text" id="search-bar" style="width:100%; padding:20px; border-radius:50px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:#fff; margin-bottom:30px; outline:none;" placeholder="🔍 搜尋店號、店名..." onkeyup="filterKeys()">
     <div id="key-list"></div>
 </div>
 
-<div id="detail-drawer" class="detail-drawer">
-    <div class="drawer-header">
-        <h2 id="drawer-title" style="margin:0;">載入數據中...</h2>
-        <div onclick="closeDrawer()" style="cursor:pointer; font-size:2rem;">&times;</div>
-    </div>
-    <div class="drawer-body" id="drawer-content"></div>
-</div>
-
 <script>
+    // 你的 Firebase 配置 (已校對)
     const firebaseConfig = {
         apiKey: "AIzaSyCMgz-UEFux6v1kcZhuvHaeSxhqxx-9zT4",
         authDomain: "salonsystem-71566.firebaseapp.com",
@@ -97,247 +62,122 @@
 
     let allKeysCache = {}; 
 
-    // 🚀 [修正] 建立新店號授權：確保雙重掛號
+    // 🚀 1. 生成金鑰頁面邏輯：使用隨機 REC ID
     async function createNewShop() {
         const { value: formValues } = await Swal.fire({
-            title: '建立新店號授權',
-            background: '#121212',
-            color: '#fff',
+            title: '生成新金鑰',
+            background: '#121212', color: '#fff',
             html:
-                '<input id="swal-name" class="swal2-input" style="color:white" placeholder="負責人/店名">' +
-                '<input id="swal-id" class="swal2-input" style="color:white" placeholder="設定店號 (如: APPLE01)">',
-            focusConfirm: false,
+                '<input id="swal-name" class="swal2-input" placeholder="負責人姓名">' +
+                '<input id="swal-id" class="swal2-input" placeholder="店號 (如: SHOP01)">',
             confirmButtonColor: '#BF953F',
             preConfirm: () => {
-                const name = document.getElementById('swal-name').value.trim();
-                const shopID = document.getElementById('swal-id').value.trim().toUpperCase();
-                if (!name || !shopID) { Swal.showValidationMessage('請完整填寫資訊'); return; }
-                return { name, shopID };
+                return {
+                    name: document.getElementById('swal-name').value,
+                    shopID: document.getElementById('swal-id').value.toUpperCase()
+                }
             }
         });
 
-        if (formValues) {
-            try {
-                // 1. 在 Salons 集合備份一份
-                await db.collection("Salons").doc(formValues.shopID).set({
-                    status: "active",
-                    expiryDate: null, 
-                    storeName: formValues.name,
-                }, { merge: true });
-
-                // 2. 🚀 在 LicenseKeys_Booking 建立主權限紀錄 (主程式檢查這裡)
-                await db.collection("LicenseKeys_Booking").doc(formValues.shopID).set({
-                    key: formValues.shopID,
-                    salonName: formValues.name,
-                    status: "active",
-                    createdAt: Date.now(),
-                    expiryDate: null
-                });
-
-                Swal.fire('成功', `店號 ${formValues.shopID} 已開通`, 'success');
-                fetchKeys();
-            } catch (e) {
-                Swal.fire('出錯了', e.message, 'error');
-            }
+        if (formValues && formValues.shopID) {
+            const recordId = "REC" + Date.now().toString().slice(-6);
+            await db.collection("LicenseKeys_Booking").doc(recordId).set({
+                ownerName: formValues.name,
+                salonId: formValues.shopID,
+                status: "active",
+                createdAt: Date.now(),
+                expire: null // 永久
+            });
+            fetchKeys();
         }
     }
 
-    // 🚀 [修正] 讀取金鑰：全面對接主程式寫回的欄位
+    // 🚀 2. 顯示頁面邏輯：看到店號與負責人
     async function fetchKeys() {
         const listArea = document.getElementById('key-list');
-        // 主程式看的是 LicenseKeys_Booking
-        const snap = await db.collection("LicenseKeys_Booking").get();
-        let total = snap.size, active = 0, warning = 0, now = Date.now();
+        const snap = await db.collection("LicenseKeys_Booking").orderBy("createdAt", "desc").get();
         listArea.innerHTML = '';
-        allKeysCache = {};
-
+        
         snap.forEach(doc => {
             const data = doc.data();
             const keyId = doc.id;
             allKeysCache[keyId] = data;
 
-            // 優先使用主程式寫回來的 salonName，沒有則用文件 ID
-            const displayName = data.salonName || keyId;
-            const salonId = data.key || keyId;
-            
-            let timeTxt = "💎 永久授權", statusColor = "#32D74B";
-            
-            // 統一使用主程式的 expiryDate 欄位
-            const expire = data.expiryDate;
-            if (expire) {
-                const days = Math.ceil((expire - now) / 86400000);
-                if (days <= 0) { timeTxt = "❌ 已過期"; statusColor = "#ff453a"; }
-                else { 
-                    timeTxt = `⏳ 剩餘 ${days} 天`; 
-                    if (data.status !== 'blocked') active++;
-                    if (days <= 7) { statusColor = "#FF9F0A"; warning++; }
-                }
-            } else {
-                if (data.status !== 'blocked') active++;
-            }
-
-            // 如果被管理員封鎖
-            if (data.status === 'blocked') {
-                timeTxt = "🚫 已封鎖";
-                statusColor = "#ff453a";
-            }
-
             const card = document.createElement('div');
-            card.className = `key-card`;
-            card.dataset.search = `${displayName} ${salonId}`.toLowerCase();
+            card.className = 'key-card';
             card.innerHTML = `
-                <div style="flex:1">
-                    <h2 class="editable-name" onclick="editName('${keyId}', '${displayName}')">
-                        ${displayName} ${data.status === 'blocked' ? '<small style="color:red">[已封鎖]</small>' : ''}
-                    </h2>
-                    <div style="font-size:1rem; margin-top:5px; color:var(--eth-gold); font-weight:800;">
-                        店號：${salonId}
-                    </div>
-                    <div style="margin-top:10px; cursor:pointer; color:var(--eth-gold); font-size:0.9rem; opacity:0.7;" onclick="openDetail('${keyId}')">
-                        <i class="fas fa-chart-line"></i> 查看實時數據 (穿透雲端)
-                    </div>
+                <div>
+                    <h2 class="editable-name">${data.ownerName || '未命名'}</h2>
+                    <div style="color:var(--eth-gold); font-weight:800;">店號：${data.salonId}</div>
+                    <div style="font-size:0.8rem; opacity:0.5;">金鑰ID: ${keyId}</div>
                 </div>
                 <div style="text-align:right;">
-                    <div style="color:${statusColor}; font-weight:800; margin-bottom:15px;">${timeTxt}</div>
-                    <div style="display:flex; align-items:center;">
-                        <button class="btn-action" onclick="manageLicense('${keyId}')">管理</button>
-                        <div class="btn-del" onclick="deleteKey('${keyId}')"><i class="fas fa-trash"></i></div>
+                    <div style="margin-bottom:10px; font-weight:bold;">
+                        ${data.expire ? '⏳ ' + new Date(data.expire).toLocaleDateString() : '💎 永久授權'}
                     </div>
+                    <button class="btn-action" onclick="manageLicense('${keyId}')">管理授權</button>
+                    <i class="fas fa-trash btn-del" onclick="deleteKey('${keyId}')"></i>
                 </div>
             `;
             listArea.appendChild(card);
         });
-        document.getElementById('count-total').innerText = total;
-        document.getElementById('count-active').innerText = active;
-        document.getElementById('count-warning').innerText = warning;
     }
 
-    async function editName(id, current) {
-        const { value: newName } = await Swal.fire({ title: '修改名稱', input: 'text', inputValue: current, background: '#121212', color: '#fff', confirmButtonColor: '#BF953F', showCancelButton: true });
-        if (newName) { 
-            await db.collection("LicenseKeys_Booking").doc(id).update({ salonName: newName }); 
-            fetchKeys(); 
-        }
-    }
-
-// 🚀 [修正] 管理授權：同步修改雙集合，確保主程式立即斷開
-async function manageLicense(id) {
-    const docData = allKeysCache[id];
-    const salonId = docData.key || id;
-    const now = Date.now();
-
-    const { value: mode } = await Swal.fire({
-        title: `管理：${salonId}`,
-        background: '#121212', color: '#fff',
-        input: 'select',
-        inputOptions: { 
-            'append': '🟢 續約 (疊加天數)', 
-            'reset': '🔵 重新設定 (指定天數)', 
-            'forever': '👑 升級為永久授權',
-            'block': '🚫 立即封鎖 (禁止登入)',
-            'active': '✅ 解除封鎖 (恢復運作)'
-        },
-        confirmButtonColor: '#BF953F', 
-        showCancelButton: true
-    });
-
-    if (!mode) return;
-
-    // 封鎖邏輯：雙集合同步
-    if (mode === 'block' || mode === 'active') {
-        const newStatus = (mode === 'block') ? 'blocked' : 'active';
-        await db.collection("LicenseKeys_Booking").doc(id).update({ status: newStatus });
-        await db.collection("Salons").doc(salonId).update({ status: newStatus }).catch(()=>{});
-        Swal.fire('執行成功', `店號 ${salonId} 狀態：${newStatus}`, 'success');
-        fetchKeys();
-        return;
-    }
-
-    if (mode === 'forever') {
-        await updateCloudSalon(salonId, null, id);
-        Swal.fire('已完成', '已設定為永久授權', 'success');
-    } 
-    else {
-        const { value: days } = await Swal.fire({ title: '輸入天數', input: 'number', background: '#121212', color: '#fff' });
-        if (days) {
-            let baseTime = (mode === 'append' && docData.expiryDate && docData.expiryDate > now) ? docData.expiryDate : now;
-            let finalExpire = baseTime + (parseInt(days) * 86400000);
-            await updateCloudSalon(salonId, finalExpire, id);
-            Swal.fire('設定完成', `延長至 ${new Date(finalExpire).toLocaleDateString()}`, 'success');
-        }
-    }
-    fetchKeys();
-}
-
-// 🚀 [修正] 統一更新函數：同步更新主程式讀取的 expiryDate 欄位
-async function updateCloudSalon(salonId, expireTime, keyDocId) {
-    // 同步更新權限集合
-    await db.collection("LicenseKeys_Booking").doc(keyDocId).update({ 
-        expiryDate: expireTime, 
-        status: "active" 
-    });
-    // 同步更新資料集合備份
-    await db.collection("Salons").doc(salonId).set({ 
-        expiryDate: expireTime, 
-        status: "active" 
-    }, { merge: true });
-}
-
-    // 🚀 [修正] 查看明細：穿透讀取 Salons 資料
-    async function openDetail(id) {
+    // 🚀 3. 管理授權邏輯：加天數、封鎖、永久
+    async function manageLicense(id) {
         const data = allKeysCache[id];
-        const salonId = data.key || id;
-        const drawer = document.getElementById('detail-drawer');
-        const content = document.getElementById('drawer-content');
-        document.getElementById('drawer-title').innerText = data.salonName || id;
-        drawer.classList.add('active');
-        content.innerHTML = '<div style="text-align:center;padding:50px;"><i class="fas fa-spinner fa-spin"></i> 正在穿透雲端資料庫...</div>';
+        const { value: mode } = await Swal.fire({
+            title: '管理授權',
+            input: 'select',
+            inputOptions: {
+                'append': '🟢 續約 (增加天數)',
+                'reset': '🔵 重設 (從頭起算)',
+                'forever': '👑 設為永久',
+                'block': '🚫 立即封鎖'
+            },
+            confirmButtonColor: '#BF953F',
+            showCancelButton: true
+        });
 
-        try {
-            const sSnap = await db.collection("Salons").doc(salonId).get();
-            if (!sSnap.exists) {
-                content.innerHTML = `<div style="color:#ff453a; text-align:center; padding:50px;">⚠️ 該店尚未有同步數據</div>`;
-                return;
+        if (!mode) return;
+
+        if (mode === 'block') {
+            await db.collection("LicenseKeys_Booking").doc(id).update({ status: 'blocked' });
+            // 同步鎖定主資料庫
+            await db.collection("Salons").doc(data.salonId).update({ status: 'blocked' }).catch(()=>{});
+        } else if (mode === 'forever') {
+            await updateLicense(id, data.salonId, null);
+        } else {
+            const { value: days } = await Swal.fire({ title: '天數', input: 'number' });
+            if (days) {
+                let base = (mode === 'append' && data.expire > Date.now()) ? data.expire : Date.now();
+                let final = base + (days * 86400000);
+                await updateLicense(id, data.salonId, final);
             }
-            const sData = sSnap.data();
-            const apps = sData.appointments || []; 
-            const stylists = sData.stylists || [];  
-            let totalRev = 0;
-            apps.forEach(a => { if(a.done) totalRev += parseFloat(a.price || 0); });
-
-            content.innerHTML = `
-                <div class="data-hero">
-                    <div style="opacity:0.7; font-size:0.8rem; font-weight:900;">實時累計業績</div>
-                    <div class="revenue-val">$${totalRev.toLocaleString()}</div>
-                </div>
-                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">人員團隊</h4>
-                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:25px;">
-                    ${stylists.length ? stylists.map(s => `<span style="background:rgba(255,255,255,0.1); padding:6px 15px; border-radius:12px; font-size:0.8rem; border:1px solid ${s.color || '#fff'}">${s.name}</span>`).join('') : '無資料'}
-                </div>
-                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">最新明細</h4>
-                ${apps.slice().reverse().slice(0, 20).map(a => `
-                    <div class="record-card" style="${a.done ? 'border-left:5px solid #32D74B;' : 'border-left:5px solid #FF9F0A;'}">
-                        <div style="display:flex; justify-content:space-between; font-weight:800;">
-                            <span>${a.n || '訪客'}</span>
-                            <span style="color:#32D74B;">$${a.price || 0}</span>
-                        </div>
-                        <div style="font-size:0.75rem; opacity:0.6; margin-top:8px;">${a.date} | ${a.done ? '✅ 已結帳' : '⏳ 預約中'}</div>
-                    </div>`).join('') || '尚無紀錄'}
-            `;
-        } catch (e) { content.innerHTML = '<div style="color:#ff453a; text-align:center; padding:50px;">穿透失敗</div>'; }
+        }
+        fetchKeys();
     }
 
-    function closeDrawer() { document.getElementById('detail-drawer').classList.remove('active'); }
-    function filterKeys() {
-        const kw = document.getElementById('search-bar').value.toLowerCase();
-        document.querySelectorAll('.key-card').forEach(c => c.style.display = c.dataset.search.includes(kw) ? 'flex' : 'none');
+    async function updateLicense(keyDocId, salonId, expireTime) {
+        // 更新金鑰文件
+        await db.collection("LicenseKeys_Booking").doc(keyDocId).update({ 
+            expire: expireTime, 
+            status: 'active' 
+        });
+        // 🚀 關鍵同步：確保主程式 V318 的 checkLicense 能讀到
+        await db.collection("Salons").doc(salonId).set({ 
+            expiryDate: expireTime, 
+            status: 'active' 
+        }, { merge: true });
     }
+
     async function deleteKey(id) {
-        if ((await Swal.fire({ title:'確定註銷此授權？', text:'這將刪除該店號的權限紀錄', icon:'warning', showCancelButton:true, background:'#121212', color:'#fff' })).isConfirmed) {
+        if (confirm("確定刪除此金鑰？")) {
             await db.collection("LicenseKeys_Booking").doc(id).delete();
             fetchKeys();
         }
     }
+
     window.onload = fetchKeys;
 </script>
 </body>
