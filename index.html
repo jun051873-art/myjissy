@@ -21,8 +21,6 @@
 
         body { background: #000; margin: 0; padding: 20px; font-family: 'Montserrat', 'Noto Sans TC', sans-serif; color: #fff; min-height: 100vh; overflow-x: hidden; }
         .container { max-width: 900px; margin: 0 auto; }
-        
-        /* 🚀 標題欄配置 */
         .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .title-brand { font-size: 2.2rem; font-weight: 900; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }
         .btn-add-main { background: var(--gold-gradient); color: #000; border: none; padding: 12px 20px; border-radius: 50px; font-weight: 900; cursor: pointer; font-size: 0.9rem; box-shadow: 0 10px 20px rgba(191,149,63,0.3); }
@@ -73,7 +71,7 @@
         <div class="stat-card"><span class="stat-val" id="count-warning" style="color:#FF9F0A">--</span><span class="stat-label">到期催告</span></div>
     </div>
 
-    <input type="text" id="search-bar" style="width:100%; padding:20px; border-radius:50px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:#fff; margin-bottom:30px; outline:none;" placeholder="🔍 搜尋店號、負責人..." onkeyup="filterKeys()">
+    <input type="text" id="search-bar" style="width:100%; padding:20px; border-radius:50px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:#fff; margin-bottom:30px; outline:none;" placeholder="🔍 搜尋店號、店名..." onkeyup="filterKeys()">
     <div id="key-list"></div>
 </div>
 
@@ -99,14 +97,14 @@
 
     let allKeysCache = {}; 
 
-    // 🚀 [新增] 後台建立店號功能
+    // 🚀 [修正] 建立新店號授權：確保雙重掛號
     async function createNewShop() {
         const { value: formValues } = await Swal.fire({
             title: '建立新店號授權',
             background: '#121212',
             color: '#fff',
             html:
-                '<input id="swal-name" class="swal2-input" style="color:white" placeholder="負責人姓名">' +
+                '<input id="swal-name" class="swal2-input" style="color:white" placeholder="負責人/店名">' +
                 '<input id="swal-id" class="swal2-input" style="color:white" placeholder="設定店號 (如: APPLE01)">',
             focusConfirm: false,
             confirmButtonColor: '#BF953F',
@@ -120,27 +118,23 @@
 
         if (formValues) {
             try {
-                // 1. 同步在 Salons 建立文件 (讓前端 checkLicense 通過)
+                // 1. 在 Salons 集合備份一份
                 await db.collection("Salons").doc(formValues.shopID).set({
                     status: "active",
                     expiryDate: null, 
                     storeName: formValues.name,
-                    role: "admin"
                 }, { merge: true });
 
-                // 2. 在 LicenseKeys_Booking 建立紀錄 (後台清單顯示用)
-                // 為了結構一致，隨機給一個 ID 作為金鑰紀錄存檔
-                const recordId = "REC" + Date.now().toString().slice(-6);
-                await db.collection("LicenseKeys_Booking").doc(recordId).set({
-                    ownerName: formValues.name,
-                    salonId: formValues.shopID,
-                    role: "admin",
+                // 2. 🚀 在 LicenseKeys_Booking 建立主權限紀錄 (主程式檢查這裡)
+                await db.collection("LicenseKeys_Booking").doc(formValues.shopID).set({
+                    key: formValues.shopID,
+                    salonName: formValues.name,
                     status: "active",
                     createdAt: Date.now(),
-                    expire: null
+                    expiryDate: null
                 });
 
-                Swal.fire('成功', `店號 ${formValues.shopID} 已成功開通`, 'success');
+                Swal.fire('成功', `店號 ${formValues.shopID} 已開通`, 'success');
                 fetchKeys();
             } catch (e) {
                 Swal.fire('出錯了', e.message, 'error');
@@ -148,42 +142,59 @@
         }
     }
 
+    // 🚀 [修正] 讀取金鑰：全面對接主程式寫回的欄位
     async function fetchKeys() {
         const listArea = document.getElementById('key-list');
-        const snap = await db.collection("LicenseKeys_Booking").orderBy("createdAt", "desc").get();
+        // 主程式看的是 LicenseKeys_Booking
+        const snap = await db.collection("LicenseKeys_Booking").get();
         let total = snap.size, active = 0, warning = 0, now = Date.now();
         listArea.innerHTML = '';
         allKeysCache = {};
 
-        snap.forEach(doc => { allKeysCache[doc.id] = doc.data(); });
-
         snap.forEach(doc => {
-            const data = doc.data(), keyId = doc.id;
-            const salonId = data.salonId || "";
+            const data = doc.data();
+            const keyId = doc.id;
+            allKeysCache[keyId] = data;
+
+            // 優先使用主程式寫回來的 salonName，沒有則用文件 ID
+            const displayName = data.salonName || keyId;
+            const salonId = data.key || keyId;
             
             let timeTxt = "💎 永久授權", statusColor = "#32D74B";
-            if (data.expire) {
-                const days = Math.ceil((data.expire - now) / 86400000);
+            
+            // 統一使用主程式的 expiryDate 欄位
+            const expire = data.expiryDate;
+            if (expire) {
+                const days = Math.ceil((expire - now) / 86400000);
                 if (days <= 0) { timeTxt = "❌ 已過期"; statusColor = "#ff453a"; }
                 else { 
-                    timeTxt = `⏳ 剩餘 ${days} 天`; active++;
+                    timeTxt = `⏳ 剩餘 ${days} 天`; 
+                    if (data.status !== 'blocked') active++;
                     if (days <= 7) { statusColor = "#FF9F0A"; warning++; }
                 }
-            } else active++;
+            } else {
+                if (data.status !== 'blocked') active++;
+            }
+
+            // 如果被管理員封鎖
+            if (data.status === 'blocked') {
+                timeTxt = "🚫 已封鎖";
+                statusColor = "#ff453a";
+            }
 
             const card = document.createElement('div');
             card.className = `key-card`;
-            card.dataset.search = `${data.ownerName} ${data.salonId}`.toLowerCase();
+            card.dataset.search = `${displayName} ${salonId}`.toLowerCase();
             card.innerHTML = `
                 <div style="flex:1">
-                    <h2 class="editable-name" onclick="editName('${keyId}', '${data.ownerName || ''}')">
-                        ${data.ownerName || '未命名'}
+                    <h2 class="editable-name" onclick="editName('${keyId}', '${displayName}')">
+                        ${displayName} ${data.status === 'blocked' ? '<small style="color:red">[已封鎖]</small>' : ''}
                     </h2>
                     <div style="font-size:1rem; margin-top:5px; color:var(--eth-gold); font-weight:800;">
-                        店號：${data.salonId}
+                        店號：${salonId}
                     </div>
                     <div style="margin-top:10px; cursor:pointer; color:var(--eth-gold); font-size:0.9rem; opacity:0.7;" onclick="openDetail('${keyId}')">
-                        <i class="fas fa-chart-line"></i> 查看實時數據與明細
+                        <i class="fas fa-chart-line"></i> 查看實時數據 (穿透雲端)
                     </div>
                 </div>
                 <div style="text-align:right;">
@@ -203,20 +214,20 @@
 
     async function editName(id, current) {
         const { value: newName } = await Swal.fire({ title: '修改名稱', input: 'text', inputValue: current, background: '#121212', color: '#fff', confirmButtonColor: '#BF953F', showCancelButton: true });
-        if (newName !== undefined && newName !== "") { 
-            await db.collection("LicenseKeys_Booking").doc(id).update({ ownerName: newName }); 
+        if (newName) { 
+            await db.collection("LicenseKeys_Booking").doc(id).update({ salonName: newName }); 
             fetchKeys(); 
         }
     }
 
+// 🚀 [修正] 管理授權：同步修改雙集合，確保主程式立即斷開
 async function manageLicense(id) {
     const docData = allKeysCache[id];
-    const salonId = docData.salonId;
+    const salonId = docData.key || id;
     const now = Date.now();
 
     const { value: mode } = await Swal.fire({
-        title: `管理店號：${salonId}`,
-        text: `負責人：${docData.ownerName || '未命名'}`,
+        title: `管理：${salonId}`,
         background: '#121212', color: '#fff',
         input: 'select',
         inputOptions: { 
@@ -232,11 +243,12 @@ async function manageLicense(id) {
 
     if (!mode) return;
 
+    // 封鎖邏輯：雙集合同步
     if (mode === 'block' || mode === 'active') {
         const newStatus = (mode === 'block') ? 'blocked' : 'active';
-        await db.collection("Salons").doc(salonId).update({ status: newStatus });
         await db.collection("LicenseKeys_Booking").doc(id).update({ status: newStatus });
-        Swal.fire('執行成功', `狀態已更新為：${newStatus}`, 'success');
+        await db.collection("Salons").doc(salonId).update({ status: newStatus }).catch(()=>{});
+        Swal.fire('執行成功', `店號 ${salonId} 狀態：${newStatus}`, 'success');
         fetchKeys();
         return;
     }
@@ -248,7 +260,7 @@ async function manageLicense(id) {
     else {
         const { value: days } = await Swal.fire({ title: '輸入天數', input: 'number', background: '#121212', color: '#fff' });
         if (days) {
-            let baseTime = (mode === 'append' && docData.expire && docData.expire > now) ? docData.expire : now;
+            let baseTime = (mode === 'append' && docData.expiryDate && docData.expiryDate > now) ? docData.expiryDate : now;
             let finalExpire = baseTime + (parseInt(days) * 86400000);
             await updateCloudSalon(salonId, finalExpire, id);
             Swal.fire('設定完成', `延長至 ${new Date(finalExpire).toLocaleDateString()}`, 'success');
@@ -257,23 +269,34 @@ async function manageLicense(id) {
     fetchKeys();
 }
 
+// 🚀 [修正] 統一更新函數：同步更新主程式讀取的 expiryDate 欄位
 async function updateCloudSalon(salonId, expireTime, keyDocId) {
-    await db.collection("LicenseKeys_Booking").doc(keyDocId).update({ expire: expireTime });
-    await db.collection("Salons").doc(salonId).set({ expiryDate: expireTime, status: "active" }, { merge: true });
+    // 同步更新權限集合
+    await db.collection("LicenseKeys_Booking").doc(keyDocId).update({ 
+        expiryDate: expireTime, 
+        status: "active" 
+    });
+    // 同步更新資料集合備份
+    await db.collection("Salons").doc(salonId).set({ 
+        expiryDate: expireTime, 
+        status: "active" 
+    }, { merge: true });
 }
 
+    // 🚀 [修正] 查看明細：穿透讀取 Salons 資料
     async function openDetail(id) {
         const data = allKeysCache[id];
+        const salonId = data.key || id;
         const drawer = document.getElementById('detail-drawer');
         const content = document.getElementById('drawer-content');
-        document.getElementById('drawer-title').innerText = data.ownerName;
+        document.getElementById('drawer-title').innerText = data.salonName || id;
         drawer.classList.add('active');
-        content.innerHTML = '<div style="text-align:center;padding:50px;"><i class="fas fa-spinner fa-spin"></i> 正在穿透雲端顧客庫...</div>';
+        content.innerHTML = '<div style="text-align:center;padding:50px;"><i class="fas fa-spinner fa-spin"></i> 正在穿透雲端資料庫...</div>';
 
         try {
-            const sSnap = await db.collection("Salons").doc(data.salonId).get();
+            const sSnap = await db.collection("Salons").doc(salonId).get();
             if (!sSnap.exists) {
-                content.innerHTML = `<div style="color:#ff453a; text-align:center; padding:50px;">⚠️ 該店尚未同步任何數據</div>`;
+                content.innerHTML = `<div style="color:#ff453a; text-align:center; padding:50px;">⚠️ 該店尚未有同步數據</div>`;
                 return;
             }
             const sData = sSnap.data();
@@ -284,14 +307,14 @@ async function updateCloudSalon(salonId, expireTime, keyDocId) {
 
             content.innerHTML = `
                 <div class="data-hero">
-                    <div style="opacity:0.7; font-size:0.8rem; font-weight:900;">實時總業績</div>
+                    <div style="opacity:0.7; font-size:0.8rem; font-weight:900;">實時累計業績</div>
                     <div class="revenue-val">$${totalRev.toLocaleString()}</div>
                 </div>
-                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">團隊概況</h4>
+                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">人員團隊</h4>
                 <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:25px;">
-                    ${stylists.length ? stylists.map(s => `<span style="background:rgba(255,255,255,0.1); padding:6px 15px; border-radius:12px; font-size:0.8rem; border:1px solid ${s.color || '#fff'}">${s.name}</span>`).join('') : '尚無團隊資料'}
+                    ${stylists.length ? stylists.map(s => `<span style="background:rgba(255,255,255,0.1); padding:6px 15px; border-radius:12px; font-size:0.8rem; border:1px solid ${s.color || '#fff'}">${s.name}</span>`).join('') : '無資料'}
                 </div>
-                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">最近 20 筆明細</h4>
+                <h4 style="border-left:4px solid var(--eth-gold); padding-left:10px; margin-bottom:15px;">最新明細</h4>
                 ${apps.slice().reverse().slice(0, 20).map(a => `
                     <div class="record-card" style="${a.done ? 'border-left:5px solid #32D74B;' : 'border-left:5px solid #FF9F0A;'}">
                         <div style="display:flex; justify-content:space-between; font-weight:800;">
@@ -299,9 +322,9 @@ async function updateCloudSalon(salonId, expireTime, keyDocId) {
                             <span style="color:#32D74B;">$${a.price || 0}</span>
                         </div>
                         <div style="font-size:0.75rem; opacity:0.6; margin-top:8px;">${a.date} | ${a.done ? '✅ 已結帳' : '⏳ 預約中'}</div>
-                    </div>`).join('') || '尚無消費紀錄'}
+                    </div>`).join('') || '尚無紀錄'}
             `;
-        } catch (e) { content.innerHTML = '<div style="color:#ff453a; text-align:center; padding:50px;">數據穿透失敗</div>'; }
+        } catch (e) { content.innerHTML = '<div style="color:#ff453a; text-align:center; padding:50px;">穿透失敗</div>'; }
     }
 
     function closeDrawer() { document.getElementById('detail-drawer').classList.remove('active'); }
@@ -310,7 +333,7 @@ async function updateCloudSalon(salonId, expireTime, keyDocId) {
         document.querySelectorAll('.key-card').forEach(c => c.style.display = c.dataset.search.includes(kw) ? 'flex' : 'none');
     }
     async function deleteKey(id) {
-        if ((await Swal.fire({ title:'確定註銷？', icon:'warning', showCancelButton:true, background:'#121212', color:'#fff' })).isConfirmed) {
+        if ((await Swal.fire({ title:'確定註銷此授權？', text:'這將刪除該店號的權限紀錄', icon:'warning', showCancelButton:true, background:'#121212', color:'#fff' })).isConfirmed) {
             await db.collection("LicenseKeys_Booking").doc(id).delete();
             fetchKeys();
         }
