@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aether Master | 旗艦中樞</title>
+    <title>Aether Master | 原始中樞</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&family=Montserrat:wght@200;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,40 +19,20 @@
             --danger: #ff453a;
         }
 
-        body { background: #000; margin: 0; padding: 20px; font-family: 'Montserrat', 'Noto Sans TC', sans-serif; color: #fff; min-height: 100vh; }
+        body { background: #000; margin: 0; padding: 20px; font-family: 'Montserrat', 'Noto Sans TC', sans-serif; color: #fff; }
         .container { max-width: 900px; margin: 0 auto; }
         .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .title-brand { font-size: 2.2rem; font-weight: 900; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
-        .stat-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 20px; text-align: center; backdrop-filter: blur(20px); }
-        .stat-val { font-size: 1.8rem; font-weight: 800; display: block; margin-bottom: 5px; }
-        .stat-label { font-size: 0.7rem; opacity: 0.5; }
+        .title-brand { font-size: 2.2rem; font-weight: 900; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn-add-main { background: var(--gold-gradient); color: #000; border: none; padding: 12px 25px; border-radius: 50px; font-weight: 900; cursor: pointer; }
 
         .key-card {
             background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 28px;
             padding: 25px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;
-            backdrop-filter: blur(40px); transition: 0.3s; position: relative;
+            backdrop-filter: blur(40px);
         }
-        
-        /* 獨立裝置標籤樣式 */
-        .device-row { 
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 8px 12px; background: rgba(255,255,255,0.03); 
-            border-radius: 12px; margin-top: 8px; border: 1px solid rgba(255,255,255,0.05);
-        }
-        .device-info { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
-        .device-info i { color: var(--eth-gold); }
-        .device-actions { display: flex; gap: 10px; }
-        .dev-btn { cursor: pointer; font-size: 0.8rem; opacity: 0.5; transition: 0.3s; }
-        .dev-btn:hover { opacity: 1; }
-        .dev-kick { color: var(--danger); }
-
-        .btn-action { background: var(--gold-gradient); color: #000; border: none; border-radius: 15px; padding: 12px 25px; font-weight: 800; cursor: pointer; }
-        .btn-del { color: var(--danger); margin-left: 20px; cursor: pointer; opacity: 0.4; }
-        
-        #loading-view { text-align: center; padding: 50px; color: var(--eth-gold); font-weight: 900; }
-        .salon-id-badge { color: var(--eth-gold); font-weight: 800; margin-top: 5px; font-size: 1.1rem; }
+        .salon-id-badge { color: var(--eth-gold); font-weight: 800; font-size: 1.1rem; }
+        .btn-action { background: var(--gold-gradient); color: #000; border: none; border-radius: 12px; padding: 10px 20px; font-weight: 800; cursor: pointer; }
+        .btn-del { color: var(--danger); margin-left: 15px; cursor: pointer; opacity: 0.5; }
     </style>
 </head>
 <body>
@@ -60,20 +40,15 @@
 <div class="container">
     <div class="header-row">
         <h1 class="title-brand">AETHER MASTER</h1>
-        <div style="font-size: 0.8rem; opacity: 0.5;">已啟動全自動監測模式</div>
+        <button class="btn-add-main" onclick="createNewLicense()"><i class="fas fa-plus"></i> 生成副鑰匙</button>
     </div>
 
-    <div class="stats-grid">
-        <div class="stat-card"><span class="stat-val" id="count-total">--</span><span class="stat-label">註冊店號</span></div>
-        <div class="stat-card"><span class="stat-val" id="count-active" style="color:#32D74B">--</span><span class="stat-label">正常連線</span></div>
-        <div class="stat-card"><span class="stat-val" id="count-blocked" style="color:#ff453a">--</span><span class="stat-label">限制中</span></div>
-    </div>
-
-    <div id="loading-view">📡 正在攔截雲端通訊數據...</div>
+    <div id="loading-view" style="text-align:center; padding:50px;">📡 讀取授權檔案中...</div>
     <div id="key-list"></div>
 </div>
 
 <script>
+    // 這裡請填入你原本的 Firebase Config
     const firebaseConfig = {
         apiKey: "AIzaSyCMgz-UEFux6v1kcZhuvHaeSxhqxx-9zT4",
         authDomain: "salonsystem-71566.firebaseapp.com",
@@ -85,187 +60,74 @@
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let allKeysCache = {}; 
-
     async function fetchKeys() {
         const listArea = document.getElementById('key-list');
-        const loading = document.getElementById('loading-view');
-        
-        try {
-            // 自動抓取 LicenseKeys_Booking，店號一註冊就會出現在這
-            const snapKeys = await db.collection("LicenseKeys_Booking").get();
-            loading.style.display = 'none';
-            listArea.innerHTML = '';
-            allKeysCache = {};
+        const snap = await db.collection("LicenseKeys_Booking").orderBy("createdAt", "desc").get();
+        document.getElementById('loading-view').style.display = 'none';
+        listArea.innerHTML = '';
 
-            let items = [];
-            snapKeys.forEach(doc => {
-                let data = doc.data();
-                data._id = doc.id;
-                items.push(data);
-            });
-
-            items.sort((a, b) => (b.lastSeenGlobal || 0) - (a.lastSeenGlobal || 0));
-
-            let activeCount = 0, blockCount = 0;
-            const now = Date.now();
-
-            items.forEach(data => {
-                const keyId = data._id;
-                allKeysCache[keyId] = data;
-                if(data.status === 'blocked') blockCount++; else activeCount++;
-
-                let timeTxt = "👑 永久授權", statusColor = "#32D74B";
-                if (data.expire) {
-                    const days = Math.ceil((data.expire - now) / 86400000);
-                    if (days <= 0) { timeTxt = "❌ 已到期"; statusColor = "#ff453a"; }
-                    else { timeTxt = `⏳ 剩餘 ${days} 天`; if(days <= 7) statusColor = "#FF9F0A"; }
-                }
-
-                // 🚀 獨立裝置控制邏輯
-                let devicesHtml = '';
-                if (data.devices && typeof data.devices === 'object') {
-                    Object.keys(data.devices).forEach(dId => {
-                        const d = data.devices[dId];
-                        const isBlocked = d.status === 'blocked';
-                        devicesHtml += `
-                            <div class="device-row" style="${isBlocked ? 'opacity:0.3; background:rgba(255,0,0,0.1);' : ''}">
-                                <div class="device-info">
-                                    <i class="fas ${isBlocked ? 'fa-user-slash' : 'fa-mobile-alt'}"></i>
-                                    <span>${d.model} (${dId.slice(-4)})</span>
-                                </div>
-                                <div class="device-actions">
-                                    <i class="fas fa-ban dev-btn ${isBlocked ? '' : 'dev-kick'}" 
-                                       title="${isBlocked ? '解鎖' : '封鎖此裝置'}" 
-                                       onclick="toggleDeviceBlock('${keyId}', '${dId}', ${isBlocked})"></i>
-                                    <i class="fas fa-trash-alt dev-btn dev-kick" title="刪除裝置紀錄" 
-                                       onclick="deleteDevice('${keyId}', '${dId}')"></i>
-                                </div>
-                            </div>`;
-                    });
-                } else {
-                    devicesHtml = '<div style="font-size:0.7rem; opacity:0.3; margin-top:10px;">尚未有裝置登入紀錄</div>';
-                }
-
-                const card = document.createElement('div');
-                card.className = 'key-card';
-                card.innerHTML = `
-                    <div style="flex:1">
-                        <h2 class="editable-name" onclick="editDisplayName('${keyId}', '${data.ownerName || ''}')">
-                            ${data.ownerName || '新註冊店舖'} <i class="fas fa-pen" style="font-size:0.7rem;"></i>
-                        </h2>
-                        <div class="salon-id-badge">店號：${data.salonId}</div>
-                        <div style="margin-top:15px;">${devicesHtml}</div>
+        snap.forEach(doc => {
+            const data = doc.data();
+            const id = doc.id; // 這就是那串亂碼 ID (副鑰匙)
+            const isBlocked = data.status === 'blocked';
+            
+            const card = document.createElement('div');
+            card.className = 'key-card';
+            card.innerHTML = `
+                <div>
+                    <h2 style="margin:0;">${data.ownerName || '未命名的鑰匙'}</h2>
+                    <div class="salon-id-badge">對應店號：${data.salonId}</div>
+                    <div style="font-size:0.8rem; opacity:0.5; margin-top:5px;">鑰匙 ID：${id}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="color:${isBlocked ? 'red' : '#32D74B'}; font-weight:900; margin-bottom:10px;">
+                        ${isBlocked ? '🚫 已封鎖' : '✅ 正常使用'}
                     </div>
-                    <div style="text-align:right; margin-left:20px;">
-                        <div style="color:${data.status === 'blocked' ? '#ff453a' : statusColor}; font-weight:900; margin-bottom:15px;">
-                            ${data.status === 'blocked' ? '🚫 全店封鎖' : timeTxt}
-                        </div>
-                        <button class="btn-action" onclick="manageLicense('${keyId}')">管理權限</button>
-                        <i class="fas fa-trash btn-del" onclick="deleteKey('${keyId}')"></i>
-                    </div>
-                `;
-                listArea.appendChild(card);
-            });
-
-            document.getElementById('count-total').innerText = items.length;
-            document.getElementById('count-active').innerText = activeCount;
-            document.getElementById('count-blocked').innerText = blockCount;
-
-        } catch (e) {
-            loading.innerHTML = "❌ 同步失敗: " + e.message;
-        }
+                    <button class="btn-action" onclick="manageKey('${id}')">管理</button>
+                    <i class="fas fa-trash btn-del" onclick="deleteKey('${id}')"></i>
+                </div>
+            `;
+            listArea.appendChild(card);
+        });
     }
 
-    // 🚀 裝置獨立控制：封鎖/解鎖
-    async function toggleDeviceBlock(docId, devId, currentlyBlocked) {
-        const action = currentlyBlocked ? '解鎖' : '封鎖';
-        const result = await Swal.fire({
-            title: `確定${action}此裝置？`,
-            text: currentlyBlocked ? "解鎖後該裝置可恢復使用" : "封鎖後該裝置將無法進入系統",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#BF953F'
+    // 🚀 生成新鑰匙邏輯 (這就是你記憶中那個獨立生成的功能)
+    async function createNewLicense() {
+        const { value: f } = await Swal.fire({
+            title: '生成新授權副鑰匙',
+            html: '<input id="sw-n" class="swal2-input" placeholder="備註名稱 (例如：店長平板)"><input id="sw-i" class="swal2-input" placeholder="對應店號">',
+            preConfirm: () => ({ name: document.getElementById('sw-n').value, shop: document.getElementById('sw-i').value })
         });
 
-        if (result.isConfirmed) {
-            const field = `devices.${devId}.status`;
-            await db.collection("LicenseKeys_Booking").doc(docId).update({
-                [field]: currentlyBlocked ? 'active' : 'blocked'
+        if (f && f.shop) {
+            // 生成一串不相干的亂碼當 ID
+            const randomKey = 'KEY-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+            await db.collection("LicenseKeys_Booking").doc(randomKey).set({
+                salonId: f.shop.trim().toUpperCase(),
+                ownerName: f.name,
+                status: "active",
+                createdAt: Date.now(),
+                expire: null
             });
+            Swal.fire('成功', '新鑰匙已生成', 'success');
             fetchKeys();
         }
     }
 
-    // 🚀 裝置獨立控制：刪除
-    async function deleteDevice(docId, devId) {
-        if (confirm("確定刪除此裝置紀錄？該裝置下次進入需重新驗證。")) {
-            await db.collection("LicenseKeys_Booking").doc(docId).update({
-                [`devices.${devId}`]: firebase.firestore.FieldValue.delete()
-            });
-            fetchKeys();
-        }
-    }
-
-    // 🚀 核心權限管理：天數、封鎖、永久
-    async function manageLicense(id) {
-        const data = allKeysCache[id];
+    async function manageKey(id) {
         const { value: mode } = await Swal.fire({
-            title: '店舖授權管理',
+            title: '授權管理',
             input: 'select',
-            inputOptions: { 
-                'append': '🟢 續約 (自訂天數)', 
-                'forever': '👑 設為永久版', 
-                'block': '🚫 封鎖全店', 
-                'active': '✅ 解除封鎖' 
-            },
-            confirmButtonColor: '#BF953F', showCancelButton: true
+            inputOptions: { 'active': '恢復使用', 'block': '🚫 封鎖斷電' }
         });
-        
-        if (!mode) return;
-
-        if (mode === 'block' || mode === 'active') {
-            const s = (mode === 'block') ? 'blocked' : 'active';
-            // 同步通電：更新授權表 + 營業資料表
-            await db.collection("LicenseKeys_Booking").doc(id).update({ status: s });
-            await db.collection("Salons").doc(data.salonId).update({ status: s }).catch(()=>{});
-        } else if (mode === 'forever') {
-            await updateLicense(id, data.salonId, null);
-        } else if (mode === 'append') {
-            const { value: days } = await Swal.fire({ 
-                title: '增加使用天數', 
-                input: 'number',
-                inputAttributes: { min: 1 },
-                placeholder: '輸入天數...'
-            });
-            if (days) {
-                let base = (data.expire && data.expire > Date.now()) ? data.expire : Date.now();
-                await updateLicense(id, data.salonId, base + (parseInt(days) * 86400000));
-            }
-        }
-        fetchKeys();
-    }
-
-    async function updateLicense(keyId, salonId, exp) {
-        await db.collection("LicenseKeys_Booking").doc(keyId).update({ expire: exp, status: 'active' });
-        await db.collection("Salons").doc(salonId).set({ expiryDate: exp, status: 'active' }, { merge: true });
-    }
-
-    async function editDisplayName(docId, currentName) {
-        const { value: newName } = await Swal.fire({
-            title: '修改店舖備註',
-            input: 'text',
-            inputValue: currentName,
-            confirmButtonColor: '#BF953F', showCancelButton: true
-        });
-        if (newName !== undefined) {
-            await db.collection("LicenseKeys_Booking").doc(docId).update({ ownerName: newName });
+        if (mode) {
+            await db.collection("LicenseKeys_Booking").doc(id).update({ status: mode === 'block' ? 'blocked' : 'active' });
             fetchKeys();
         }
     }
 
     async function deleteKey(id) {
-        if (confirm("確定刪除此授權？(營業資料會保留，但該店號會立即停用)")) {
+        if (confirm("確定刪除此鑰匙紀錄？")) {
             await db.collection("LicenseKeys_Booking").doc(id).delete();
             fetchKeys();
         }
